@@ -84,13 +84,20 @@ As a non-runner discovering a newfound enjoyment of running, I want to train for
 - **User override**: Accept app's recommendation or manually specify adjustments
 - **Evolution tracking**: Monitor injury progression over 6 months
 
-### 4.4 Workout Logging via Wearables
-- **Apple Health integration**: Pull completed workouts (distance, pace, duration, HR) → auto-log to app
-- **Strava integration**: Pull activity data → auto-log (for runs logged outside Apple ecosystem)
-- **Fallback**: Manual screenshot parsing if integrations unavailable (worst-case)
+### 4.4 Workout Logging via Strava
+- **Strava integration**: OAuth 2.0 pull completed workouts (distance, pace, duration, HR) → auto-log to app
+- **Fallback**: Manual workout entry if Strava unavailable
 - **Workout comparison**: Compare planned vs. actual effort/pace/distance
+- **Note**: Apple Health integration dropped (requires native iOS app; web app limitation)
 
-### 4.5 Menstrual Cycle Integration
+### 4.5 Recovery & Sleep Tracking (MVP via Voice, Future via Oura)
+- **MVP (Phase 1)**: Manual voice note input answering "How's your sleep? How recovered do you feel?" (1-10 scale)
+  - Voice notes converted to quantified recovery score
+  - Affects next week's training intensity recommendations
+- **Future (Phase 3)**: Oura Ring API integration to auto-pull sleep/HRV data (if user has Gen2 ring or active Gen3/4 subscription)
+- **Why voice notes first**: Oura integration optional; core recovery signal comes from user perception
+
+### 4.6 Menstrual Cycle Integration
 - **Input**: Log cycle phase (or estimate from history)
 - **Adaptation logic**: 
   - Heavy/cramp days → lower intensity suggestions
@@ -102,29 +109,29 @@ As a non-runner discovering a newfound enjoyment of running, I want to train for
 - **Peak week format**: Specific workout structure for final week
 - **Race day plan**: Pacing strategy, fueling checklist, pre-race logistics
 
-### 4.7 Recovery Insights (Optional Integration)
-- **Aura Ring API**: If available, pull sleep/recovery data → inform training intensity recommendations
-- **Fallback**: Manual sleep/HRV logging via voice note
-
 ---
 
 ## 5. Feature Priority & Phases
 
 ### Phase 1 (MVP — Weeks 1-4)
 1. Training plan generation (basic algorithm: volume + intensity progression)
-2. Manual workout logging (text input, no wearables yet)
-3. Rib tracking + voice notes (basic speech-to-text, Claude-powered suggestions)
+2. Rib tracking + voice notes (basic speech-to-text, Claude-powered suggestions)
+3. Recovery/sleep voice notes (manual input for recovery scoring)
 4. Weekly plan updates (regenerate based on completed workouts + rib status)
+5. Manual workout logging (fallback for when Strava isn't available)
 
 ### Phase 2 (Weeks 5-8)
-1. Apple Health + Strava integration for automatic workout pulling
+1. **Strava integration** (OAuth 2.0 pull, auto-log workouts) — **HIGH PRIORITY**
 2. Menstrual cycle integration
 3. Improved Claude prompts for plan suggestions (more nuanced)
 
 ### Phase 3 (Weeks 9-12)
-1. Aura Ring integration (if API available)
-2. Race day tapering logic
-3. UI refinements based on early usage
+1. Race day tapering logic
+2. UI refinements based on early usage
+3. Advanced analytics (pace trends, injury patterns)
+
+### Phase 4 (Post-MVP, Medium Priority)
+1. Oura Ring integration for auto-pull sleep/recovery data (if user has Gen2 or Gen3/4 with subscription)
 
 ### Phase 4 (Post-MVP, Future)
 1. Optional sharing/export for coach review
@@ -134,12 +141,13 @@ As a non-runner discovering a newfound enjoyment of running, I want to train for
 
 ## 6. Out of Scope (Explicitly)
 
+- **Apple Health integration**: Requires native iOS app (architectural limitation of Flask web app)
 - **Community/social features**: No Strava-like feed, no public profiles, no social sharing by default
 - **Nutrition logging**: User manages independently
-- **Paid service integrations**: Only free APIs (Apple Health, Strava, Aura Ring if available)
-- **Syncing back to wearables**: App pulls data only; doesn't push plan back to Apple Watch/Strava
+- **Syncing back to wearables**: App pulls data only; doesn't push plan back to Strava/Apple Watch
 - **Live workout tracking**: App doesn't track a run in progress; it's for pre-run planning
 - **Coaching marketplace**: Not a platform for coach discovery
+- **Oura Ring integration (MVP)**: Phase 4 feature; MVP uses manual voice input for recovery
 
 ---
 
@@ -147,17 +155,19 @@ As a non-runner discovering a newfound enjoyment of running, I want to train for
 
 ### Assumptions
 - Claude API can reliably interpret voice notes and suggest plan changes (needs testing)
-- Apple Health + Strava APIs are stable and accessible (need to research auth flow)
+- Strava API is stable and accessible for indie developers (verified: free tier available with OAuth 2.0)
+- Apple Health integration not required; Strava is sufficient for run data (revised after API research)
 - 9-min/mile pace is achievable for a beginner within 6 months (realistic but aggressive)
-- User will consistently log workouts + rib status for AI recommendations to work well
+- User will consistently log workouts + rib status + recovery for AI recommendations to work well
 
 ### Risks & Mitigation
 | Risk | Impact | Mitigation |
 |------|--------|-----------|
 | Voice transcription errors | Bad plan suggestions | Manual review before approval; fallback to text input |
 | Rib injury worsens | Can't train, goal not met | Conservative algorithm; encourage real doctor checkups |
-| Wearable API access denied | Can't auto-log workouts | Screenshot parsing fallback; manual logging |
-| Over-reliance on AI for injury advice | Safety issue | Clear disclaimer: not medical advice; always consult doctor |
+| Strava API rate limits hit | Can't pull workouts | Cache workouts; implement rate-limit-aware retries |
+| Over-reliance on AI for injury/recovery advice | Safety issue | Clear disclaimer: not medical advice; always consult doctor |
+| Oura Ring access restricted (Gen3/4 paywall) | Can't pull sleep data in Phase 4 | Stay with manual voice input; make Oura optional enhancement |
 
 ---
 
@@ -183,12 +193,21 @@ By Week 4, the app should:
 
 ## 10. Open Questions & Next Steps
 
-- [ ] Research Apple Health API authentication (does it require an app store release?)
-- [ ] Research Strava API access (free tier available?)
-- [ ] Research Aura Ring API (is it accessible without special partnership?)
+### API Research (Completed ✓)
+- [x] Apple Health API: Requires native iOS app — **DROPPED from scope**
+- [x] Strava API: Free tier available, OAuth 2.0, ~100 req/15min — **CONFIRMED for Phase 2**
+- [x] Oura Ring API: Public API, but Gen3/4 restricted without subscription — **Phase 4 optional**
+
+### Product Definition (Pending)
 - [ ] Validate: What's the realistic range of weekly training hours given job + hobbies?
 - [ ] Define: Menstrual cycle tracking method (manual input, calendar estimate, or both?)
 - [ ] Define: Rib severity scale (1-5? 1-10?) and how each level maps to training adjustments
+- [ ] Define: Recovery scale for voice notes (1-10? Sleep hours? Specific questions?)
+- [ ] Confirm: Does user have Oura Gen2, Gen3, or Gen4? (Affects Phase 4 feasibility)
+
+### Technical Proof-of-Concepts (Next)
+- [ ] Test: Claude API voice-to-text → plan suggestions (core MVP risk)
+- [ ] Test: Strava OAuth flow + activity pulling (Phase 2 blocker)
 
 ---
 
