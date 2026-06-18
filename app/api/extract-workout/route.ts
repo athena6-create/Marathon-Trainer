@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import type { WorkoutExtraction } from '@/lib/types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 const EXTRACTION_PROMPT = `You are a running coach AI that extracts structured workout data from voice note transcripts.
 
-Parse the user's workout note and extract the following information in JSON format:
+Parse the user's workout note and extract the following information in JSON format. Return ONLY the JSON, no other text.
 
 {
   "workout_type": "run" | "strength" | "mobility" | "walk_hike" | "rest" | "other",
@@ -27,7 +27,7 @@ Parse the user's workout note and extract the following information in JSON form
     "avg_hr": number or null,
     "hit_170": boolean or null,
     "threshold_timing": "early" | "middle" | "late" or null,
-    "hr_recovery": string or null (e.g. "recovered to 120s"),
+    "hr_recovery": string or null,
     "modifications": string or null
   },
   "strength": {
@@ -37,7 +37,7 @@ Parse the user's workout note and extract the following information in JSON form
   },
   "recovery": {
     "sleep_quality": "poor" | "fair" | "good" | "excellent" or null,
-    "soreness": string or null (body area + severity),
+    "soreness": string or null,
     "period_context": string or null,
     "alcohol": boolean or null,
     "caffeine": boolean or null,
@@ -50,20 +50,19 @@ Parse the user's workout note and extract the following information in JSON form
       "severity": 0-5 or null,
       "description": string or null,
       "affected_form": boolean or null,
-      "timing": string or null (e.g. "during rep 3", "next morning")
+      "timing": string or null
     }
   ] or null,
   "coach_observations": [string] or null
 }
 
 Rules:
-- Return ONLY valid JSON, no other text
+- Return ONLY valid JSON, no markdown, no explanation
 - Use null for missing or unclear data
-- For run intervals like "5 minute jog, 2 minute walk", extract jog_minutes=5, walk_minutes=2
+- For "5 minute jog, 2 minute walk", extract jog_minutes=5, walk_minutes=2
 - If user mentions "hit 170" or "170 bpm", set hit_170=true and infer threshold_timing from context
-- For soreness, extract body area and severity (1-5 scale)
-- Be conservative with pain severity (>= 3 means significant)
-- Coach observations should note anything interesting about form, effort, recovery signals`;
+- Be conservative: severity >= 3 means significant pain
+- Coach observations note anything interesting about form, effort, recovery signals`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const message = await openai.messages.create({
+    const message = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       messages: [

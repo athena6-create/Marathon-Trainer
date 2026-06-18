@@ -45,12 +45,12 @@ You should see all tables created successfully.
    - `recommendations`
    - `oura_daily_snapshot`
 
-## 2. OpenAI Setup
+## 2. Claude API Setup
 
-1. Go to [platform.openai.com](https://platform.openai.com)
+1. Go to [console.anthropic.com](https://console.anthropic.com)
 2. Sign in or create an account
-3. Click your profile → "API keys"
-4. Click "Create new secret key"
+3. Click "API Keys" in the left sidebar
+4. Click "Create Key"
 5. Copy the key immediately (it won't be shown again)
 
 ## 3. Environment Variables
@@ -64,7 +64,7 @@ You should see all tables created successfully.
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-   OPENAI_API_KEY=sk-...
+   ANTHROPIC_API_KEY=sk-ant-...
    ```
 
 ## 4. Run Locally
