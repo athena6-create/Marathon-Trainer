@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,7 +22,28 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Node.js
+node_modules/
+.next/
+out/
+.npm
+*.tsbuildinfo
+
+# Environment
 .env
+.env.local
+.env.*.local
+.env.production.local
+
+# OS
 .DS_Store
 *.sqlite
 *.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
