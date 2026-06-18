@@ -27,6 +27,23 @@ export default function Profile() {
 
         if (data) {
           setProfile(data);
+        } else {
+          // Create empty profile for new user
+          setProfile({
+            id: '',
+            user_id: user.id,
+            current_run_level_jog_minutes: 5,
+            current_run_level_jog_seconds: 0,
+            current_run_level_walk_minutes: 2,
+            current_run_level_walk_seconds: 0,
+            current_run_level_reps_min: 5,
+            current_run_level_reps_max: 6,
+            preferred_jog_speed_mph: 4.6,
+            preferred_walk_speed_mph: 3.0,
+            hr_backoff_threshold: 170,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -42,13 +59,35 @@ export default function Profile() {
     if (!profile) return;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('athlete_profile')
-        .update(profile)
-        .eq('id', profile.id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
 
-      if (error) throw error;
+      // Ensure user exists in public users table
+      const { error: userError } = await supabase
+        .from('users')
+        .upsert(
+          { id: user.id, email: user.email, name: user.user_metadata?.name },
+          { onConflict: 'id' }
+        );
+      if (userError) throw userError;
+
+      if (profile.id) {
+        // Update existing profile
+        const { error } = await supabase
+          .from('athlete_profile')
+          .update(profile)
+          .eq('id', profile.id);
+        if (error) throw error;
+      } else {
+        // Create new profile (omit id so database auto-generates UUID)
+        const { id, ...profileData } = profile;
+        const { error } = await supabase
+          .from('athlete_profile')
+          .insert([{ ...profileData, user_id: user.id }]);
+        if (error) throw error;
+      }
       alert('Profile saved successfully!');
+      window.location.href = '/';
     } catch (error) {
       console.error('Error saving profile:', error);
       alert('Failed to save profile');
@@ -78,6 +117,66 @@ export default function Profile() {
 
         {profile ? (
           <div className="space-y-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-gray-900 mb-3">Current Run Level</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Jog (min)</label>
+                  <input
+                    type="number"
+                    value={profile.current_run_level_jog_minutes || 0}
+                    onChange={(e) => setProfile({ ...profile, current_run_level_jog_minutes: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Jog (sec)</label>
+                  <input
+                    type="number"
+                    value={profile.current_run_level_jog_seconds || 0}
+                    onChange={(e) => setProfile({ ...profile, current_run_level_jog_seconds: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Walk (min)</label>
+                  <input
+                    type="number"
+                    value={profile.current_run_level_walk_minutes || 0}
+                    onChange={(e) => setProfile({ ...profile, current_run_level_walk_minutes: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Walk (sec)</label>
+                  <input
+                    type="number"
+                    value={profile.current_run_level_walk_seconds || 0}
+                    onChange={(e) => setProfile({ ...profile, current_run_level_walk_seconds: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Reps (min)</label>
+                  <input
+                    type="number"
+                    value={profile.current_run_level_reps_min || 0}
+                    onChange={(e) => setProfile({ ...profile, current_run_level_reps_min: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Reps (max)</label>
+                  <input
+                    type="number"
+                    value={profile.current_run_level_reps_max || 0}
+                    onChange={(e) => setProfile({ ...profile, current_run_level_reps_max: parseInt(e.target.value) || 0 })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Age

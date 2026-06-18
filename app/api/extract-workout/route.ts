@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import type { WorkoutExtraction } from '@/lib/types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 const EXTRACTION_PROMPT = `You are a running coach AI that extracts structured workout data from voice note transcripts.
 
 Parse the user's workout note and extract the following information in JSON format. Return ONLY the JSON, no other text.
@@ -66,6 +62,16 @@ Rules:
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Extract request received');
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not set');
+    }
+
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
     const body = await request.json();
     const { transcript } = body;
 
@@ -76,8 +82,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Calling Claude API with transcript:', transcript.substring(0, 100));
+
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-opus-4-1-20250805',
       max_tokens: 1024,
       messages: [
         {
@@ -87,17 +95,23 @@ export async function POST(request: NextRequest) {
       ],
     });
 
+    console.log('Claude response received');
+
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    console.log('Response text:', responseText.substring(0, 200));
 
     // Parse the JSON response
     const extraction: WorkoutExtraction = JSON.parse(responseText);
+    console.log('Extraction parsed successfully');
 
     return NextResponse.json(extraction);
   } catch (error) {
     console.error('Extraction error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Extraction failed';
+    console.error('Error details:', errorMessage);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Extraction failed',
+        error: errorMessage,
       },
       { status: 500 }
     );

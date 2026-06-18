@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 export default function LogWorkout() {
   const [mode, setMode] = useState<'recording' | 'transcript' | 'extracted' | null>(null);
@@ -76,6 +77,29 @@ export default function LogWorkout() {
       setMode('extracted');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Extraction failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveWorkout = async () => {
+    if (!extracted) return;
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/save-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extracted, rawNote: transcript, userId: user.id }),
+      });
+
+      if (!response.ok) throw new Error('Save failed');
+      alert('Workout saved! Redirecting...');
+      window.location.href = '/';
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setLoading(false);
     }
@@ -209,7 +233,13 @@ export default function LogWorkout() {
             </pre>
 
             <div className="flex gap-2">
-              <button className="button-primary flex-1">Save Workout</button>
+              <button
+                onClick={saveWorkout}
+                disabled={loading}
+                className="button-primary flex-1 disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save Workout'}
+              </button>
               <button
                 onClick={() => setMode('transcript')}
                 className="button-secondary"

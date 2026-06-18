@@ -136,7 +136,7 @@ export default function Dashboard() {
       {/* Recommended Workout */}
       {recommendation ? (
         <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-900">Today's Recommended Workout</h2>
+          <h2 className="text-lg font-semibold mb-3 text-gray-900">Next Recommended Workout</h2>
           <div className="mb-4">
             <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
               {recommendation.workout_type.toUpperCase()}
@@ -158,7 +158,28 @@ export default function Dashboard() {
           </div>
 
           <div className="flex gap-2">
-            <button className="button-primary">Acknowledge</button>
+            <button
+              onClick={async () => {
+                await supabase
+                  .from('recommendations')
+                  .update({ user_acknowledged: true })
+                  .eq('id', recommendation.id);
+                alert('Acknowledged!');
+                window.location.reload();
+              }}
+              className="button-primary flex-1"
+            >
+              Acknowledge
+            </button>
+            <button
+              onClick={() => {
+                // For now, just log to console; could open a modal or navigate to edit page
+                alert('Override feature coming soon! You can modify: interval duration, reps, speed, intensity.');
+              }}
+              className="button-secondary flex-1"
+            >
+              Tweak/Override
+            </button>
             <Link href="/log-workout" className="button-secondary">
               Log Workout
             </Link>
