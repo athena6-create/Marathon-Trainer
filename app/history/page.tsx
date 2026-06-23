@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+const getCategoryFromActivity = (activity: string): 'run' | 'strength' | 'other' => {
+  const lower = activity.toLowerCase();
+  if (lower.includes('run') || lower.includes('biking') || lower.includes('bike') || lower.includes('cycling')) {
+    return 'run';
+  } else if (lower.includes('strength') || lower.includes('weight') || lower.includes('resistance')) {
+    return 'strength';
+  }
+  return 'other';
+};
+
 export default function WorkoutHistory() {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,19 +161,15 @@ export default function WorkoutHistory() {
                   ? 'border-yellow-300 bg-yellow-50'
                   : 'border-gray-200'
               }`}>
+                {/* Header with date and top-right actions */}
                 <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600">
-                      {new Date(workout.workout_date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900 capitalize mt-1">
-                      {workout.workout_type}
-                    </p>
-                  </div>
+                  <p className="text-sm font-semibold text-gray-600">
+                    {new Date(workout.workout_date).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
                   <div className="flex items-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       workout.completed
@@ -183,17 +189,35 @@ export default function WorkoutHistory() {
                   </div>
                 </div>
 
-                {workout.summary && (
-                  <p className="text-gray-700 text-sm mb-3">{workout.summary}</p>
-                )}
+                {/* Column headers */}
+                <div className="grid grid-cols-2 gap-4 mb-2 text-xs font-semibold text-gray-600">
+                  <div>Workout</div>
+                  <div className="flex gap-4">
+                    <div>Type</div>
+                    <div>Duration</div>
+                  </div>
+                </div>
+
+                {/* Data row */}
+                <div className="grid grid-cols-2 gap-4 items-center mb-3">
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {workout.summary || workout.workout_type}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="px-3 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded capitalize inline-block">
+                      {getCategoryFromActivity(workout.summary || '')}
+                    </span>
+                    {workout.duration_minutes && (
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded inline-block">
+                        {workout.duration_minutes} min
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  {workout.duration_minutes && (
-                    <div>
-                      <p className="text-gray-600">Duration</p>
-                      <p className="font-semibold text-gray-900">{workout.duration_minutes} min</p>
-                    </div>
-                  )}
                   {workout.distance_miles && (
                     <div>
                       <p className="text-gray-600">Distance</p>

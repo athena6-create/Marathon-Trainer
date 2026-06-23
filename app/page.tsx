@@ -87,6 +87,14 @@ export default function Dashboard() {
         console.log('Oura data:', ouraData);
         setOuraStatus(ouraData);
 
+        // Sync Oura workouts
+        console.log('Syncing Oura workouts...');
+        await fetch('/api/oura/sync-workouts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: authUser.id }),
+        });
+
         // Check for unlogged workouts (completed today, no notes)
         const today = new Date().toISOString().split('T')[0];
         const { data: todayWorkouts } = await supabase
