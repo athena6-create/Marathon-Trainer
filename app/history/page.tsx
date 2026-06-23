@@ -143,8 +143,14 @@ export default function WorkoutHistory() {
           </div>
         ) : (
           <div className="space-y-4">
-            {workouts.map((workout) => (
-              <div key={workout.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            {workouts.map((workout) => {
+              const isPending = !workout.completed && workout.summary?.includes('Pending');
+              return (
+              <div key={workout.id} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                isPending
+                  ? 'border-yellow-300 bg-yellow-50'
+                  : 'border-gray-200'
+              }`}>
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-600">
@@ -162,9 +168,11 @@ export default function WorkoutHistory() {
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       workout.completed
                         ? 'bg-green-100 text-green-800'
+                        : isPending
+                        ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {workout.completed ? '✓ Completed' : 'Planned'}
+                      {workout.completed ? '✓ Completed' : isPending ? '⏳ Pending' : 'Planned'}
                     </span>
                     <button
                       onClick={() => handleDeleteWorkout(workout.id)}
@@ -213,7 +221,8 @@ export default function WorkoutHistory() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

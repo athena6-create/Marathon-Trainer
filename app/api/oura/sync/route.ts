@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   fetchOuraDailySleep,
   fetchOuraDailyReadiness,
+  fetchOuraDailyActivity,
   refreshOuraToken,
 } from "@/lib/oura";
 
@@ -57,19 +58,17 @@ export async function POST(request: NextRequest) {
 
     let accessToken = profile.oura_access_token;
 
-    // Fetch sleep and readiness data
+    // Fetch sleep, readiness, and activity data
     let sleepData: any[] = [];
     let readinessData: any[] = [];
+    let activityData: any[] = [];
 
     try {
       sleepData = await fetchOuraDailySleep(accessToken, start, end);
     } catch (error: any) {
       if (error.message === "OURA_TOKEN_EXPIRED") {
-        // Token expired, refresh it
         const newTokens = await refreshOuraToken(profile.oura_refresh_token);
         accessToken = newTokens.access_token;
-
-        // Update stored tokens
         await supabaseAdmin
           .from("athlete_profile")
           .update({
@@ -77,8 +76,6 @@ export async function POST(request: NextRequest) {
             oura_refresh_token: newTokens.refresh_token,
           })
           .eq("user_id", userId);
-
-        // Retry fetch
         sleepData = await fetchOuraDailySleep(accessToken, start, end);
       } else {
         throw error;
@@ -104,12 +101,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create a map of readiness data by date for easy lookup
-    const readinessMap = new Map(readinessData.map((r: any) => [r.day, r]));
+    try {
+      activityData = await fetchOuraDailyActivity(accessToken, start, end);
+      console.log("Activity data fetched:", activityData);
+    } catch (error: any) {
+      console.error("Activity fetch error:", error.message);
+      if (error.message === "OURA_TOKEN_EXPIRED") {
+        const newTokens = await refreshOuraToken(profile.oura_refresh_token);
+        accessToken = newTokens.access_token;
+        await supabaseAdmin
+          .from("athlete_profile")
+          .update({
+            oura_access_token: newTokens.access_token,
+            oura_refresh_token: newTokens.refresh_token,
+          })
+          .eq("user_id", userId);
+        activityData = await fetchOuraDailyActivity(accessToken, start, end);
+        console.log("Activity data fetched after token refresh:", activityData);
+      } else {
+        console.warn("Failed to fetch activity data, continuing without it:", error.message);
+      }
+    }
 
-    // Upsert sleep data + readiness data into oura_daily_snapshot
+    // Create maps for easy lookup by date
+    const readinessMap = new Map(readinessData.map((r: any) => [r.day, r]));
+    const activityMap = new Map(activityData.map((a: any) => [a.day, a]));
+
+    // Upsert sleep data + readiness data + activity data into oura_daily_snapshot
     const snapshots = sleepData.map((sleep: any) => {
       const readiness = readinessMap.get(sleep.day);
+      const activity = activityMap.get(sleep.day);
 
       return {
         user_id: userId,
@@ -125,6 +146,9 @@ export async function POST(request: NextRequest) {
         resting_heart_rate: readiness?.resting_heart_rate || null,
         hrv: Math.round(sleep.average_hrv || 0),
         body_temperature_deviation: readiness?.temperature_deviation || null,
+        activity_score: activity?.score || null,
+        active_calories: activity?.active_calories || null,
+        steps: activity?.steps || null,
         synced_at: new Date().toISOString(),
       };
     });

@@ -102,17 +102,17 @@ export async function POST(request: NextRequest) {
       if (completedAtLevel && ouraReadiness >= 70 && currentLevelId < 4) {
         // Ready to progress
         recommendedLevelId = currentLevelId + 1;
-        rationale = `You've crushed the last ${recentWorkouts.length} runs and your Oura readiness is ${ouraReadiness}. Time to level up!`;
+        rationale = `You've crushed the last ${recentWorkouts.length} runs and your Oura readiness is excellent. Time to level up!`;
       } else if (ouraReadiness < 50) {
         // Need to recover
         recommendedLevelId = Math.max(1, currentLevelId - 1);
-        rationale = `Your Oura readiness is ${ouraReadiness}. Let's dial it back and focus on recovery.`;
+        rationale = `Your Oura readiness indicates you need recovery. Let's dial it back and focus on rest.`;
       } else {
         // Stay at current
-        rationale = `Keep grinding this level. Oura readiness: ${ouraReadiness}. You're building a solid foundation.`;
+        rationale = `Keep grinding this level. Your Oura readiness is good. You're building a solid foundation.`;
       }
     } else {
-      rationale = `Start with this level. Oura readiness today: ${ouraReadiness}.`;
+      rationale = `Start with this level. Your Oura readiness looks good today.`;
     }
 
     const recommendedLevel = PROGRESSION_LEVELS.find(

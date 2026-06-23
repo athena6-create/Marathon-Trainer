@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const { data: recentSnapshots } = await supabaseAdmin
       .from("oura_daily_snapshot")
-      .select("hrv, resting_heart_rate, sleep_score, readiness_score")
+      .select("hrv, resting_heart_rate, sleep_score, readiness_score, activity_score")
       .eq("user_id", userId)
       .gte("snapshot_date", startDate)
       .lte("snapshot_date", today);

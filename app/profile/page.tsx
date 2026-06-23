@@ -36,6 +36,7 @@ export default function Profile() {
           setProfile({
             id: '',
             user_id: user.id,
+            first_name: user.user_metadata?.name || '',
             current_run_level_jog_minutes: 5,
             current_run_level_jog_seconds: 0,
             current_run_level_walk_minutes: 2,
@@ -110,6 +111,22 @@ export default function Profile() {
     window.location.href = `/api/oura/auth?userId=${user.id}`;
   };
 
+  const getRelativeTime = (timestamp: string) => {
+    const now = new Date();
+    const syncDate = new Date(timestamp);
+    const diffMs = now.getTime() - syncDate.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) {
+      return `Synced ${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffHours > 0) {
+      return `Synced ${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just synced';
+    }
+  };
+
   const handleSyncOura = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -160,6 +177,19 @@ export default function Profile() {
 
         {profile ? (
           <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                First Name
+              </label>
+              <input
+                type="text"
+                value={profile.first_name || ''}
+                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Your name"
+              />
+            </div>
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-semibold text-gray-900 mb-3">Current Run Level</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -302,7 +332,7 @@ export default function Profile() {
                     <span className="text-sm font-semibold text-green-700">✓ Connected to Oura Ring</span>
                     {profile.oura_synced_at && (
                       <span className="text-xs text-gray-600">
-                        Last synced: {new Date(profile.oura_synced_at).toLocaleDateString()}
+                        {getRelativeTime(profile.oura_synced_at)}
                       </span>
                     )}
                   </div>
