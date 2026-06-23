@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { AthleteProfile } from '@/lib/types';
 
@@ -9,6 +10,9 @@ export default function Profile() {
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncedData, setSyncedData] = useState<any>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -62,25 +66,29 @@ export default function Profile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Ensure user exists in public users table
-      const { error: userError } = await supabase
-        .from('users')
-        .upsert(
-          { id: user.id, email: user.email, name: user.user_metadata?.name },
-          { onConflict: 'id' }
-        );
-      if (userError) throw userError;
+      // Ensure the user exists in the users table (using service role)
+      await fetch('/api/ensure-user', { method: 'POST' });
+
+      // Exclude Oura fields from the update (they're managed by the sync endpoint)
+      const {
+        oura_access_token,
+        oura_refresh_token,
+        oura_user_id,
+        oura_synced_at,
+        ...profileDataToSave
+      } = profile;
 
       if (profile.id) {
         // Update existing profile
         const { error } = await supabase
           .from('athlete_profile')
-          .update(profile)
+          .update(profileDataToSave)
           .eq('id', profile.id);
         if (error) throw error;
       } else {
         // Create new profile (omit id so database auto-generates UUID)
-        const { id, ...profileData } = profile;
+        // RLS policy will validate that user_id matches the authenticated user
+        const { id, ...profileData } = profileDataToSave;
         const { error } = await supabase
           .from('athlete_profile')
           .insert([{ ...profileData, user_id: user.id }]);
@@ -93,6 +101,41 @@ export default function Profile() {
       alert('Failed to save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConnectOura = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    window.location.href = `/api/oura/auth?userId=${user.id}`;
+  };
+
+  const handleSyncOura = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/oura/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setSyncedData(data);
+      // Reload profile to show updated synced_at
+      if (profile) {
+        setProfile({
+          ...profile,
+          oura_synced_at: new Date().toISOString(),
+        });
+      }
+      alert(`Synced ${data.synced_days} days of Oura data!`);
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Failed to sync Oura data');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -236,6 +279,71 @@ export default function Profile() {
                 onChange={(e) => setProfile({ ...profile, training_days_per_week: parseInt(e.target.value) || undefined })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Oura Ring Integration</h3>
+
+              {searchParams.get('oura') === 'connected' && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  ✓ Successfully connected to Oura Ring!
+                </div>
+              )}
+
+              {searchParams.get('oura') === 'error' && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  ✗ Failed to connect Oura Ring. Please try again.
+                </div>
+              )}
+
+              {profile?.oura_access_token ? (
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-green-700">✓ Connected to Oura Ring</span>
+                    {profile.oura_synced_at && (
+                      <span className="text-xs text-gray-600">
+                        Last synced: {new Date(profile.oura_synced_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSyncOura}
+                    disabled={syncing}
+                    className="button-primary disabled:opacity-50"
+                  >
+                    {syncing ? 'Syncing...' : 'Sync Now'}
+                  </button>
+
+                  {syncedData && syncedData.synced_days > 0 && (
+                    <div className="mt-3 p-3 bg-white rounded border border-green-200 text-sm">
+                      <p className="text-gray-700 mb-2">
+                        <strong>Last synced:</strong> {syncedData.synced_days} days
+                      </p>
+                      {syncedData.snapshots && syncedData.snapshots.length > 0 && (
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <p>Latest data:</p>
+                          <p>• Sleep Score: {syncedData.snapshots[syncedData.snapshots.length - 1]?.sleep_score || 'N/A'}</p>
+                          <p>• Readiness: {syncedData.snapshots[syncedData.snapshots.length - 1]?.readiness_score || 'N/A'}</p>
+                          <p>• HRV: {syncedData.snapshots[syncedData.snapshots.length - 1]?.hrv || 'N/A'} ms</p>
+                          <p>• Resting HR: {syncedData.snapshots[syncedData.snapshots.length - 1]?.resting_heart_rate || 'N/A'} bpm</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-700 mb-3">
+                    Connect your Oura Ring to integrate sleep, readiness, and heart rate data into your training recommendations.
+                  </p>
+                  <button
+                    onClick={handleConnectOura}
+                    className="button-primary"
+                  >
+                    Connect Oura Ring
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">

@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [readinessScore, setReadinessScore] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [ouraStatus, setOuraStatus] = useState<any>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -59,6 +60,15 @@ export default function Dashboard() {
           setRecommendation(recData);
           setReadinessScore(recData.readiness_score);
         }
+
+        // Get Oura status
+        const ouraResponse = await fetch('/api/oura/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: authUser.id }),
+        });
+        const ouraData = await ouraResponse.json();
+        setOuraStatus(ouraData);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -126,6 +136,71 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Oura Insights Card */}
+      {ouraStatus?.connected && ouraStatus?.todaySnapshot ? (
+        <div className="card mb-6 border-l-4 border-blue-400">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">📱 Oura Insights</h2>
+            <span className="text-xs text-gray-500">
+              {ouraStatus.lastSyncedAt ? `Synced: ${new Date(ouraStatus.lastSyncedAt).toLocaleDateString()}` : 'Syncing...'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Sleep Score */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
+              <p className="text-xs font-semibold text-gray-600 mb-1">Sleep Score</p>
+              <p className="text-3xl font-bold text-blue-900">{ouraStatus.todaySnapshot.sleep_score || 'N/A'}</p>
+              {ouraStatus.baselines.sleepScore && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Avg: {ouraStatus.baselines.sleepScore}
+                </p>
+              )}
+            </div>
+
+            {/* Readiness Score */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
+              <p className="text-xs font-semibold text-gray-600 mb-1">Oura Readiness</p>
+              <p className="text-3xl font-bold text-green-900">{ouraStatus.todaySnapshot.readiness_score || 'N/A'}</p>
+              {ouraStatus.baselines.readinessScore && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Avg: {ouraStatus.baselines.readinessScore}
+                </p>
+              )}
+            </div>
+
+            {/* HRV */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
+              <p className="text-xs font-semibold text-gray-600 mb-1">HRV</p>
+              <p className="text-3xl font-bold text-purple-900">{ouraStatus.todaySnapshot.hrv || 'N/A'} <span className="text-sm">ms</span></p>
+              {ouraStatus.baselines.hrv && (
+                <p className="text-xs text-gray-600 mt-1">
+                  {ouraStatus.todaySnapshot.hrv > ouraStatus.baselines.hrv ? '📈' : '📉'} Avg: {ouraStatus.baselines.hrv} ms
+                </p>
+              )}
+            </div>
+
+            {/* Resting HR */}
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg">
+              <p className="text-xs font-semibold text-gray-600 mb-1">Resting HR</p>
+              <p className="text-3xl font-bold text-red-900">{ouraStatus.todaySnapshot.resting_heart_rate || 'N/A'} <span className="text-sm">bpm</span></p>
+              {ouraStatus.baselines.restingHeartRate && (
+                <p className="text-xs text-gray-600 mt-1">
+                  {ouraStatus.todaySnapshot.resting_heart_rate < ouraStatus.baselines.restingHeartRate ? '📉' : '📈'} Avg: {ouraStatus.baselines.restingHeartRate} bpm
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : ouraStatus?.connected === false ? (
+        <div className="card mb-6 bg-blue-50 border-l-4 border-blue-400">
+          <p className="text-gray-700 mb-2">Connect your Oura Ring for real-time sleep, readiness, and heart rate insights.</p>
+          <Link href="/profile" className="text-blue-600 font-semibold text-sm hover:underline">
+            Go to Settings →
+          </Link>
+        </div>
+      ) : null}
 
       {/* Current Run Level */}
       <div className="card mb-6">
