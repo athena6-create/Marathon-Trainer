@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { WorkoutExtraction, Workout } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
@@ -83,24 +84,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate readiness
-    let readinessScore = 100;
+    let manualReadiness = 100;
     let riskLevel: 'green' | 'yellow' | 'red' = 'green';
 
     if (extracted.symptoms && extracted.symptoms.length > 0) {
       extracted.symptoms.forEach(s => {
         if (s.severity && s.severity >= 3) {
-          readinessScore -= 20;
+          manualReadiness -= 20;
         } else if (s.severity && s.severity > 0) {
-          readinessScore -= 5;
+          manualReadiness -= 5;
         }
       });
     }
 
     if (extracted.run?.hit_170 && extracted.run.threshold_timing === 'early') {
-      readinessScore -= 15;
+      manualReadiness -= 15;
     }
 
-    readinessScore = Math.max(0, Math.min(100, readinessScore));
+    manualReadiness = Math.max(0, Math.min(100, manualReadiness));
+
+    // Get today's Oura readiness and blend with manual readiness
+    let readinessScore = manualReadiness;
+    let ouraReadiness: number | null = null;
+    let blendBreakdown = '';
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data: ouraSnapshot } = await supabaseAdmin
+      .from('oura_daily_snapshot')
+      .select('readiness_score')
+      .eq('user_id', userId)
+      .eq('snapshot_date', today)
+      .single();
+
+    if (ouraSnapshot?.readiness_score) {
+      ouraReadiness = ouraSnapshot.readiness_score;
+      // Blend: 60% manual + 40% Oura
+      readinessScore = Math.round(manualReadiness * 0.6 + ouraReadiness * 0.4);
+      blendBreakdown = ` (Your inputs: ${manualReadiness} | Oura: ${ouraReadiness} | Blended: ${readinessScore})`;
+    }
 
     if (readinessScore >= 80) {
       riskLevel = 'green';
@@ -110,8 +131,6 @@ export async function POST(request: NextRequest) {
       riskLevel = 'red';
     }
 
-    const today = new Date().toISOString().split('T')[0];
-
     let recommendationText = 'Great session! ';
     let prescriptionIntensity = 'easy';
 
@@ -120,11 +139,21 @@ export async function POST(request: NextRequest) {
       prescriptionIntensity = 'easy';
     } else if (riskLevel === 'green') {
       recommendationText = 'Solid effort with good control. ';
+      if (ouraReadiness !== null && ouraReadiness >= 80) {
+        recommendationText += `Your Oura readiness is ${ouraReadiness}, so you're well-recovered. `;
+      }
       prescriptionIntensity = 'progress';
     } else if (riskLevel === 'yellow') {
-      recommendationText = 'Good effort. Consider taking it easy next time. ';
+      recommendationText = 'Good effort. ';
+      if (ouraReadiness !== null && ouraReadiness < 70) {
+        recommendationText += `Your Oura readiness is ${ouraReadiness}, so take it easier next time. `;
+      } else {
+        recommendationText += 'Consider taking it easy next time. ';
+      }
       prescriptionIntensity = 'repeat';
     }
+
+    recommendationText += blendBreakdown;
 
     const { error: recError } = await supabase
       .from('recommendations')

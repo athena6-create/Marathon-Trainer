@@ -16,23 +16,23 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('Dashboard loading...');
         // Get current user
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (!authUser) {
           window.location.href = '/auth/login';
           return;
         }
+        console.log('Auth user loaded:', authUser.id);
 
-        // Get user profile
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
-
-        if (userData) {
-          setUser(userData);
-        }
+        // Use auth user directly (no need to query users table)
+        setUser({
+          id: authUser.id,
+          email: authUser.email || '',
+          name: authUser.user_metadata?.name || authUser.email || 'Runner',
+          created_at: authUser.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
 
         // Get athlete profile
         const { data: profileData } = await supabase
@@ -45,29 +45,45 @@ export default function Dashboard() {
           setProfile(profileData);
         }
 
-        // Get today's recommendation
-        const today = new Date().toISOString().split('T')[0];
-        const { data: recData } = await supabase
-          .from('recommendations')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .eq('recommended_date', today)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+        // Generate recommendation from agile progression
+        console.log('Generating recommendation...');
+        const recResponse = await fetch('/api/recommendation/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: authUser.id }),
+        });
+        const recData = await recResponse.json();
 
-        if (recData) {
-          setRecommendation(recData);
-          setReadinessScore(recData.readiness_score);
+        if (recData.run_prescription) {
+          // Transform into recommendation format for display
+          setRecommendation({
+            id: 'generated',
+            user_id: authUser.id,
+            triggered_by_workout_id: null,
+            recommended_date: new Date().toISOString().split('T')[0],
+            workout_type: 'run',
+            run_prescription: recData.run_prescription,
+            rationale: recData.rationale,
+            readiness_score: recData.oura_readiness,
+            risk_level: recData.oura_readiness >= 80 ? 'green' : recData.oura_readiness >= 60 ? 'yellow' : 'red',
+            user_acknowledged: false,
+            user_overridden: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any);
+          setReadinessScore(recData.oura_readiness);
         }
 
         // Get Oura status
+        console.log('Fetching Oura status...');
         const ouraResponse = await fetch('/api/oura/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: authUser.id }),
         });
+        console.log('Oura status response:', ouraResponse.status);
         const ouraData = await ouraResponse.json();
+        console.log('Oura data:', ouraData);
         setOuraStatus(ouraData);
       } catch (error) {
         console.error('Error loading data:', error);
@@ -114,29 +130,6 @@ export default function Dashboard() {
         <p className="text-gray-600">Welcome, {user?.name || user?.email || 'Runner'}</p>
       </div>
 
-      {/* Readiness Score Card */}
-      <div className={`card mb-6 ${getRiskLevelColor(recommendation?.risk_level || 'green')}`}>
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm font-semibold mb-2">Today's Readiness</p>
-            <div className="text-4xl font-bold mb-2">{readinessScore}/100</div>
-            <p className="text-sm">
-              {readinessScore >= 80 && '🟢 Green — Progress allowed'}
-              {readinessScore >= 60 && readinessScore < 80 && '🟡 Normal — Repeat current'}
-              {readinessScore >= 40 && readinessScore < 60 && '🟡 Yellow — Downgrade'}
-              {readinessScore < 40 && '🔴 Red — Rest/walk only'}
-            </p>
-          </div>
-          <div className="text-right text-sm text-gray-600">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </div>
-        </div>
-      </div>
-
       {/* Oura Insights Card */}
       {ouraStatus?.connected && ouraStatus?.todaySnapshot ? (
         <div className="card mb-6 border-l-4 border-blue-400">
@@ -161,33 +154,11 @@ export default function Dashboard() {
 
             {/* Readiness Score */}
             <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
-              <p className="text-xs font-semibold text-gray-600 mb-1">Oura Readiness</p>
+              <p className="text-xs font-semibold text-gray-600 mb-1">Readiness Score</p>
               <p className="text-3xl font-bold text-green-900">{ouraStatus.todaySnapshot.readiness_score || 'N/A'}</p>
               {ouraStatus.baselines.readinessScore && (
                 <p className="text-xs text-gray-600 mt-1">
                   Avg: {ouraStatus.baselines.readinessScore}
-                </p>
-              )}
-            </div>
-
-            {/* HRV */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
-              <p className="text-xs font-semibold text-gray-600 mb-1">HRV</p>
-              <p className="text-3xl font-bold text-purple-900">{ouraStatus.todaySnapshot.hrv || 'N/A'} <span className="text-sm">ms</span></p>
-              {ouraStatus.baselines.hrv && (
-                <p className="text-xs text-gray-600 mt-1">
-                  {ouraStatus.todaySnapshot.hrv > ouraStatus.baselines.hrv ? '📈' : '📉'} Avg: {ouraStatus.baselines.hrv} ms
-                </p>
-              )}
-            </div>
-
-            {/* Resting HR */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg">
-              <p className="text-xs font-semibold text-gray-600 mb-1">Resting HR</p>
-              <p className="text-3xl font-bold text-red-900">{ouraStatus.todaySnapshot.resting_heart_rate || 'N/A'} <span className="text-sm">bpm</span></p>
-              {ouraStatus.baselines.restingHeartRate && (
-                <p className="text-xs text-gray-600 mt-1">
-                  {ouraStatus.todaySnapshot.resting_heart_rate < ouraStatus.baselines.restingHeartRate ? '📉' : '📈'} Avg: {ouraStatus.baselines.restingHeartRate} bpm
                 </p>
               )}
             </div>

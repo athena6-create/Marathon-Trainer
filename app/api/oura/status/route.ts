@@ -25,14 +25,29 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get today's snapshot
+    // Get today's snapshot, or yesterday's if today's doesn't exist yet
     const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+
     const { data: todaySnapshot } = await supabaseAdmin
       .from("oura_daily_snapshot")
       .select("*")
       .eq("user_id", userId)
       .eq("snapshot_date", today)
       .single();
+
+    let snapshotToUse = todaySnapshot;
+
+    // If no data for today, try yesterday
+    if (!snapshotToUse) {
+      const { data: yesterdaySnapshot } = await supabaseAdmin
+        .from("oura_daily_snapshot")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("snapshot_date", yesterday)
+        .single();
+      snapshotToUse = yesterdaySnapshot;
+    }
 
     // Get last 14 days to calculate baselines
     const twoWeeksAgo = new Date();
@@ -86,12 +101,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       connected: true,
       lastSyncedAt: profile.oura_synced_at,
-      todaySnapshot: todaySnapshot || null,
+      todaySnapshot: snapshotToUse || null,
       baselines: {
         hrv: baselineHrv,
         restingHeartRate: baselineRestingHr,
         sleepScore: baselineSleepScore,
-        readinessScore: baselineReadiness,
+        readinessScore: baselineSleepScore,
       },
     });
   } catch (error) {
