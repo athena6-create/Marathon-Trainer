@@ -15,6 +15,8 @@ export default function Dashboard() {
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [repeatNote, setRepeatNote] = useState('');
   const [repeatLoading, setRepeatLoading] = useState(false);
+  const [unloggedWorkout, setUnloggedWorkout] = useState<any>(null);
+  const [showWorkoutDetailsModal, setShowWorkoutDetailsModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -68,6 +70,8 @@ export default function Dashboard() {
             user_overridden: false,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            next_workout: recData.next_workout,
+            rest_status: recData.rest_status,
           } as any);
           setReadinessScore(recData.oura_readiness);
         }
@@ -82,6 +86,23 @@ export default function Dashboard() {
         const ouraData = await ouraResponse.json();
         console.log('Oura data:', ouraData);
         setOuraStatus(ouraData);
+
+        // Check for unlogged workouts (completed today, no notes)
+        const today = new Date().toISOString().split('T')[0];
+        const { data: todayWorkouts } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .eq('workout_date', today)
+          .eq('completed', true);
+
+        if (todayWorkouts && todayWorkouts.length > 0) {
+          const unloggedWorkouts = todayWorkouts.filter(w => !w.raw_note || w.raw_note.trim() === '');
+          if (unloggedWorkouts.length > 0) {
+            setUnloggedWorkout(unloggedWorkouts[0]);
+            setShowWorkoutDetailsModal(true);
+          }
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -170,6 +191,26 @@ export default function Dashboard() {
       alert('Failed to save workout');
     } finally {
       setRepeatLoading(false);
+    }
+  };
+
+  const handleSaveWorkoutDetails = async (notes: string) => {
+    if (!unloggedWorkout) return;
+    try {
+      const { error } = await supabase
+        .from('workouts')
+        .update({ raw_note: notes })
+        .eq('id', unloggedWorkout.id);
+
+      if (error) throw error;
+
+      alert('Workout details saved!');
+      setShowWorkoutDetailsModal(false);
+      setUnloggedWorkout(null);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving workout details:', error);
+      alert('Failed to save details');
     }
   };
 
@@ -316,7 +357,19 @@ export default function Dashboard() {
         {/* Recommended Workout */}
         {recommendation ? (
           <div className="card mb-6">
-            <h2 className="text-lg font-semibold mb-3 text-gray-900">Next Recommended Workout</h2>
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Next Recommended Workout</h2>
+              {(recommendation as any).rest_status && !(recommendation as any).rest_status.ready && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                  Ready in {(recommendation as any).rest_status.hours_until_ready}h
+                </span>
+              )}
+              {(recommendation as any).rest_status && (recommendation as any).rest_status.ready && (
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                  Ready Now ✓
+                </span>
+              )}
+            </div>
             <div className="mb-4">
               <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
                 {recommendation.workout_type.toUpperCase()}
@@ -385,11 +438,98 @@ export default function Dashboard() {
                   Repeat Previous
                 </button>
               </div>
+
+              {/* Next Workout Preview */}
+              {recommendation && (recommendation as any).next_workout && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">What's Next</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600">Tomorrow's Workout</p>
+                        <p className="text-lg font-semibold text-gray-900 capitalize mt-1">
+                          💪 {(recommendation as any).next_workout.type}
+                        </p>
+                      </div>
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                        {(recommendation as any).next_workout.rest_days} day rest
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 mt-2">
+                      {(recommendation as any).next_workout.description}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
           <div className="card mb-6 bg-yellow-50 border-l-4 border-yellow-400">
             <p className="text-gray-700">No recommendation yet. Log your first workout to get started.</p>
+          </div>
+        )}
+
+        {/* Unlogged Workout Modal */}
+        {showWorkoutDetailsModal && unloggedWorkout && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Looks like you just completed a workout! 🏃</h2>
+
+              {/* Workout Type Info */}
+              <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                <p className="text-xs font-semibold text-gray-600 mb-1">Workout Type Detected</p>
+                {unloggedWorkout.workout_type ? (
+                  <p className="text-lg font-semibold text-gray-900 capitalize">
+                    {unloggedWorkout.workout_type === 'run' ? '🏃 Running' : '💪 ' + unloggedWorkout.workout_type}
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-600">⚠️ Please record the workout type in Oura Ring</p>
+                )}
+                {unloggedWorkout.summary && (
+                  <p className="text-xs text-gray-600 mt-1">{unloggedWorkout.summary}</p>
+                )}
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Tell us more about it while it's fresh. This helps the app learn and improve recommendations.
+              </p>
+
+              <textarea
+                id="workoutNotes"
+                placeholder={
+                  unloggedWorkout.workout_type === 'run'
+                    ? 'E.g., "Felt great, pace was steady, legs felt fresh, no pain"'
+                    : 'E.g., "Did 3 sets of 10, felt strong, good recovery"'
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 text-sm"
+                rows={4}
+              />
+
+              <p className="text-xs text-gray-500 mb-4 text-center">
+                💡 Include: pace, effort, how you felt, any pain, pace, recovery time
+              </p>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowWorkoutDetailsModal(false);
+                    setUnloggedWorkout(null);
+                  }}
+                  className="button-secondary flex-1"
+                >
+                  Skip for now
+                </button>
+                <button
+                  onClick={() => {
+                    const notes = (document.getElementById('workoutNotes') as HTMLTextAreaElement).value;
+                    handleSaveWorkoutDetails(notes);
+                  }}
+                  className="button-primary flex-1"
+                >
+                  Save Details
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

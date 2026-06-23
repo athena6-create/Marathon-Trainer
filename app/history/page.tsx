@@ -214,7 +214,7 @@ export default function WorkoutHistory() {
                   )}
                 </div>
 
-                {workout.raw_note && (
+                {workout.raw_note && !workout.raw_note.includes("Pending") && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <p className="text-xs text-gray-600 mb-1">Notes:</p>
                     <p className="text-sm text-gray-700 italic">"{workout.raw_note}"</p>

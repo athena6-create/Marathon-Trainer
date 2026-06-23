@@ -89,6 +89,18 @@ export async function POST(request: NextRequest) {
       .order("workout_date", { ascending: false })
       .limit(3);
 
+    // Get the very last completed workout (any type) to calculate rest
+    const { data: lastCompletedWorkouts } = await supabaseAdmin
+      .from("workouts")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("completed", true)
+      .order("workout_date", { ascending: false })
+      .limit(1);
+
+    const lastWorkout = lastCompletedWorkouts?.[0];
+    const lastWorkoutTime = lastWorkout ? new Date(lastWorkout.workout_date) : null;
+
     // Simple progression logic
     let recommendedLevelId = currentLevelId;
     let rationale = "";
@@ -119,6 +131,31 @@ export async function POST(request: NextRequest) {
       (l) => l.id === recommendedLevelId
     );
 
+    // Calculate rest requirements and next workout timing
+    let hoursUntilNextWorkout = 0;
+    let nextWorkoutReady = true;
+    let readyAtTime = "";
+
+    if (lastWorkoutTime) {
+      const now = new Date();
+      const hoursSinceLastWorkout = (now.getTime() - lastWorkoutTime.getTime()) / (1000 * 60 * 60);
+      const requiredRest = 24; // 24 hours between runs
+
+      if (hoursSinceLastWorkout < requiredRest) {
+        nextWorkoutReady = false;
+        hoursUntilNextWorkout = Math.ceil(requiredRest - hoursSinceLastWorkout);
+
+        // Calculate when they can workout
+        const nextWorkoutTimeMs = lastWorkoutTime.getTime() + requiredRest * 60 * 60 * 1000;
+        const nextWorkoutDate = new Date(nextWorkoutTimeMs);
+        readyAtTime = nextWorkoutDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+    }
+
     return NextResponse.json({
       recommended_level_id: recommendedLevelId,
       run_prescription: {
@@ -133,6 +170,18 @@ export async function POST(request: NextRequest) {
       },
       rationale,
       oura_readiness: ouraReadiness,
+      next_workout: {
+        type: "strength",
+        day: "Tomorrow",
+        description: "Upper body strength + core",
+        rest_days: 1,
+      },
+      rest_status: {
+        ready: nextWorkoutReady,
+        hours_until_ready: hoursUntilNextWorkout,
+        ready_at_time: readyAtTime,
+        last_workout_time: lastWorkoutTime?.toISOString(),
+      },
     });
   } catch (error) {
     console.error("Recommendation error:", error);
