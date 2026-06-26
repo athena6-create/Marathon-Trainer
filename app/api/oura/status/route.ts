@@ -62,7 +62,9 @@ export async function POST(request: NextRequest) {
     // Extract scores from snapshot
     const resilience_score = latestSnapshot?.readiness_score || null;
     const rest_score = latestSnapshot?.sleep_score || null;
-    const activity_score = latestSnapshot?.activity_score || null;
+    // Use activity_balance from readiness_contributors as activity score if activity_score is null
+    const activity_score = latestSnapshot?.activity_score ||
+      latestSnapshot?.readiness_contributors?.activity_balance || null;
 
     console.log("Extracted scores:", { resilience_score, rest_score, activity_score });
 
