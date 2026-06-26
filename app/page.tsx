@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User, AthleteProfile, Recommendation } from '@/lib/types';
 
 export default function Dashboard() {
+  const syncedRef = useRef(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -84,6 +85,17 @@ export default function Dashboard() {
         const ouraData = await ouraResponse.json();
         console.log('Oura data:', ouraData);
         setOuraStatus(ouraData);
+
+        // Sync Oura workouts (only once per load)
+        if (!syncedRef.current && ouraData?.connected) {
+          syncedRef.current = true;
+          console.log('Syncing Oura workouts...');
+          await fetch('/api/oura/sync-workouts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: authUser.id }),
+          }).catch((error) => console.error('Sync failed:', error));
+        }
 
       } catch (error) {
         console.error('Error loading data:', error);
