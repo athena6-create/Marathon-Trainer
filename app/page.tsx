@@ -16,6 +16,16 @@ export default function Dashboard() {
   const [repeatNote, setRepeatNote] = useState('');
   const [repeatLoading, setRepeatLoading] = useState(false);
 
+  // Training assistant state
+  const [trainingState, setTrainingState] = useState<any>(null);
+  const [workoutNote, setWorkoutNote] = useState('');
+  const [trainingStep, setTrainingStep] = useState<'input' | 'questionnaire' | 'recommendation'>('input');
+  const [currentSession, setCurrentSession] = useState<any>(null);
+  const [questionnaire, setQuestionnaire] = useState<any[]>([]);
+  const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string>>({});
+  const [trainingRecommendation, setTrainingRecommendation] = useState<any>(null);
+  const [trainingLoading, setTrainingLoading] = useState(false);
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -84,6 +94,23 @@ export default function Dashboard() {
         const ouraData = await ouraResponse.json();
         console.log('Oura data:', ouraData);
         setOuraStatus(ouraData);
+
+        // Get training state
+        const { data: state } = await supabase
+          .from('training_state')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .single();
+
+        if (state) {
+          setTrainingState(state);
+        } else {
+          await supabase.from('training_state').insert({
+            user_id: authUser.id,
+            current_run_level: 4,
+            half_marathon_progress: 15,
+          });
+        }
 
       } catch (error) {
         console.error('Error loading data:', error);
@@ -176,6 +203,96 @@ export default function Dashboard() {
     }
   };
 
+  const handleExtractWorkout = async () => {
+    if (!workoutNote.trim() || !user) return;
+
+    setTrainingLoading(true);
+    try {
+      const extractResponse = await fetch('/api/training/extract-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          workoutNote: workoutNote,
+          runLevel: trainingState?.current_run_level || 4,
+        }),
+      });
+
+      const extracted = await extractResponse.json();
+
+      setCurrentSession({
+        structured_data: extracted.data,
+        oura_rest: ouraStatus?.rest_level,
+        oura_resilience: ouraStatus?.resilience_level,
+        oura_activity: ouraStatus?.activity_level,
+      });
+
+      const questionnaireResponse = await fetch('/api/training/get-questionnaire', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          structured_data: extracted.data,
+        }),
+      });
+
+      const questions = await questionnaireResponse.json();
+      setQuestionnaire(questions.questions);
+      setTrainingStep('questionnaire');
+    } catch (error) {
+      console.error('Error extracting workout:', error);
+      alert('Error processing workout');
+    } finally {
+      setTrainingLoading(false);
+    }
+  };
+
+  const handleSubmitQuestionnaire = async () => {
+    if (!user || !currentSession) return;
+
+    setTrainingLoading(true);
+    try {
+      const response = await fetch('/api/training/submit-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          structured_data: currentSession.structured_data,
+          questionnaire_answers: questionnaireAnswers,
+          oura_rest: currentSession.oura_rest,
+          oura_resilience: currentSession.oura_resilience,
+          oura_activity: currentSession.oura_activity,
+          run_level: trainingState?.current_run_level || 4,
+        }),
+      });
+
+      const result = await response.json();
+      setTrainingRecommendation(result);
+      setTrainingStep('recommendation');
+
+      const { data: updated } = await supabase
+        .from('training_state')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (updated) setTrainingState(updated);
+    } catch (error) {
+      console.error('Error submitting session:', error);
+      alert('Error generating recommendation');
+    } finally {
+      setTrainingLoading(false);
+    }
+  };
+
+  const resetTrainingForm = () => {
+    setWorkoutNote('');
+    setTrainingStep('input');
+    setCurrentSession(null);
+    setQuestionnaire([]);
+    setQuestionnaireAnswers({});
+    setTrainingRecommendation(null);
+  };
+
 
   if (loading) {
     return (
@@ -205,13 +322,6 @@ export default function Dashboard() {
 
         {/* Main Actions */}
         <div className="space-y-2 mb-6 flex-1">
-          <Link
-            href="/log-workout"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white hover:text-blue-600 transition-colors font-medium text-sm"
-          >
-            <span>📝</span>
-            Log Workout
-          </Link>
           <Link
             href="/history"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white hover:text-blue-600 transition-colors font-medium text-sm"
@@ -431,6 +541,151 @@ export default function Dashboard() {
             <p className="text-gray-700">No recommendation yet. Log your first workout to get started.</p>
           </div>
         )}
+
+        {/* Training Assistant */}
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Log Workout</h2>
+
+          {trainingStep === 'input' && (
+            <div>
+              <textarea
+                value={workoutNote}
+                onChange={(e) => setWorkoutNote(e.target.value)}
+                placeholder="E.g., 'I did 5-minute jog, 2-minute walk intervals for 35 minutes. Completed all 5 rounds. Knees felt fine. Average heart rate was 150. Felt a bit tired but good.'"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 text-base h-24"
+              />
+              <button
+                onClick={handleExtractWorkout}
+                disabled={!workoutNote.trim() || trainingLoading}
+                className="button-primary disabled:opacity-50"
+              >
+                {trainingLoading ? 'Analyzing...' : 'Analyze Workout'}
+              </button>
+            </div>
+          )}
+
+          {trainingStep === 'questionnaire' && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick follow-up questions</h3>
+              <div className="space-y-4 mb-6">
+                {questionnaire.map((q, idx) => (
+                  <div key={idx}>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      {q.question}
+                    </label>
+                    {q.type === 'text' ? (
+                      <input
+                        type="text"
+                        value={questionnaireAnswers[q.id] || ''}
+                        onChange={(e) =>
+                          setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder={q.placeholder}
+                      />
+                    ) : q.type === 'number' ? (
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="0"
+                          max={q.max || 10}
+                          value={questionnaireAnswers[q.id] || q.default || 0}
+                          onChange={(e) =>
+                            setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
+                          }
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-semibold text-gray-900 w-12">
+                          {questionnaireAnswers[q.id] || q.default || 0}
+                        </span>
+                      </div>
+                    ) : q.type === 'select' ? (
+                      <select
+                        value={questionnaireAnswers[q.id] || ''}
+                        onChange={(e) =>
+                          setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="">Choose...</option>
+                        {q.options?.map((opt: string) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSubmitQuestionnaire}
+                  disabled={trainingLoading}
+                  className="button-primary flex-1 disabled:opacity-50"
+                >
+                  {trainingLoading ? 'Generating...' : 'Get Recommendation'}
+                </button>
+                <button onClick={() => setTrainingStep('input')} className="button-secondary flex-1">
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {trainingStep === 'recommendation' && trainingRecommendation && (
+            <div>
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded mb-6 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-600">Summary</p>
+                  <p className="text-gray-900">{trainingRecommendation.summary}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-600">Recovery Status</p>
+                  <p className="text-gray-900">{trainingRecommendation.readiness}</p>
+                </div>
+
+                <div className="p-3 bg-white rounded border border-blue-200">
+                  <p className="text-sm font-semibold text-gray-600">Next Action</p>
+                  <p className="text-lg font-bold text-blue-600 mt-2">{trainingRecommendation.next_action}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-600">Why</p>
+                  <p className="text-gray-900">{trainingRecommendation.reasoning}</p>
+                </div>
+
+                {trainingRecommendation.watch_outs && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <p className="text-sm font-semibold text-gray-600">Watch-outs</p>
+                    <p className="text-sm text-gray-700 mt-2">{trainingRecommendation.watch_outs}</p>
+                  </div>
+                )}
+
+                {trainingRecommendation.workout && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded">
+                    <p className="text-sm font-semibold text-gray-600 mb-2">Suggested Workout</p>
+                    <p className="text-sm font-medium text-gray-900 mb-2">{trainingRecommendation.workout.name}</p>
+                    {trainingRecommendation.workout.exercises && (
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        {trainingRecommendation.workout.exercises.map((ex: any, i: number) => (
+                          <li key={i}>
+                            • {ex.name}: {ex.sets} × {ex.reps}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <button onClick={resetTrainingForm} className="button-primary w-full">
+                Log Another Workout
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Repeat Previous Modal */}
         {showRepeatModal && (
