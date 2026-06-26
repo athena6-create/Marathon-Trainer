@@ -15,8 +15,6 @@ export default function Dashboard() {
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [repeatNote, setRepeatNote] = useState('');
   const [repeatLoading, setRepeatLoading] = useState(false);
-  const [unloggedWorkout, setUnloggedWorkout] = useState<any>(null);
-  const [showWorkoutDetailsModal, setShowWorkoutDetailsModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -87,30 +85,6 @@ export default function Dashboard() {
         console.log('Oura data:', ouraData);
         setOuraStatus(ouraData);
 
-        // Sync Oura workouts
-        console.log('Syncing Oura workouts...');
-        await fetch('/api/oura/sync-workouts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: authUser.id }),
-        });
-
-        // Check for unlogged workouts (completed today, no notes)
-        const today = new Date().toISOString().split('T')[0];
-        const { data: todayWorkouts } = await supabase
-          .from('workouts')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .eq('workout_date', today)
-          .eq('completed', true);
-
-        if (todayWorkouts && todayWorkouts.length > 0) {
-          const unloggedWorkouts = todayWorkouts.filter(w => !w.raw_note || w.raw_note.trim() === '');
-          if (unloggedWorkouts.length > 0) {
-            setUnloggedWorkout(unloggedWorkouts[0]);
-            setShowWorkoutDetailsModal(true);
-          }
-        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -202,25 +176,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleSaveWorkoutDetails = async (notes: string) => {
-    if (!unloggedWorkout) return;
-    try {
-      const { error } = await supabase
-        .from('workouts')
-        .update({ raw_note: notes })
-        .eq('id', unloggedWorkout.id);
-
-      if (error) throw error;
-
-      alert('Workout details saved!');
-      setShowWorkoutDetailsModal(false);
-      setUnloggedWorkout(null);
-      window.location.reload();
-    } catch (error) {
-      console.error('Error saving workout details:', error);
-      alert('Failed to save details');
-    }
-  };
 
   if (loading) {
     return (
