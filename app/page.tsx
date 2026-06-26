@@ -355,58 +355,38 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="flex-1 p-6 max-w-4xl">
-        {/* Oura Insights Card */}
-        {ouraStatus?.connected && ouraStatus?.todaySnapshot ? (
-          <div className="card mb-6 border-l-4 border-blue-400">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Oura Insights</h2>
-              {ouraStatus.lastSyncedAt && (
-                <span className="text-xs text-gray-500">
-                  {getRelativeTime(ouraStatus.lastSyncedAt)}
-                </span>
-              )}
-            </div>
-
+        {/* Oura Recovery Metrics */}
+        {ouraStatus?.connected ? (
+          <div className="card mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recovery Metrics</h2>
             <div className="grid grid-cols-3 gap-4">
-              {/* Resilience Score */}
-              <div className={`bg-gradient-to-br ${
-                ouraStatus.resilience_level === 'green' ? 'from-green-100 to-green-50' :
-                ouraStatus.resilience_level === 'yellow' ? 'from-yellow-100 to-yellow-50' :
-                'from-red-100 to-red-50'
-              } p-4 rounded-lg`}>
-                <p className="text-xs font-semibold text-gray-600 mb-1">Resilience</p>
-                <p className="text-3xl font-bold text-gray-900">{ouraStatus.resilience_score || ouraStatus.resilience_level?.toUpperCase() || '—'}</p>
+              {/* Resilience */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Resilience</p>
+                <p className="text-4xl font-bold text-blue-600">{ouraStatus.resilience_level || '—'}</p>
               </div>
 
-              {/* Rest Score */}
-              <div className={`bg-gradient-to-br ${
-                ouraStatus.rest_level === 'green' ? 'from-green-100 to-green-50' :
-                ouraStatus.rest_level === 'yellow' ? 'from-yellow-100 to-yellow-50' :
-                'from-red-100 to-red-50'
-              } p-4 rounded-lg`}>
-                <p className="text-xs font-semibold text-gray-600 mb-1">Rest</p>
-                <p className="text-3xl font-bold text-gray-900">{ouraStatus.rest_score || ouraStatus.rest_level?.toUpperCase() || '—'}</p>
+              {/* Rest */}
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Rest</p>
+                <p className="text-4xl font-bold text-green-600">{ouraStatus.rest_level || '—'}</p>
               </div>
 
-              {/* Activity Score */}
-              <div className={`bg-gradient-to-br ${
-                ouraStatus.activity_level === 'green' ? 'from-green-100 to-green-50' :
-                ouraStatus.activity_level === 'yellow' ? 'from-yellow-100 to-yellow-50' :
-                'from-red-100 to-red-50'
-              } p-4 rounded-lg`}>
-                <p className="text-xs font-semibold text-gray-600 mb-1">Activity</p>
-                <p className="text-3xl font-bold text-gray-900">{ouraStatus.activity_score || ouraStatus.activity_level?.toUpperCase() || '—'}</p>
+              {/* Activity */}
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Activity</p>
+                <p className="text-4xl font-bold text-yellow-600">{ouraStatus.activity_level || '—'}</p>
               </div>
             </div>
           </div>
-        ) : ouraStatus?.connected === false ? (
+        ) : (
           <div className="card mb-6 bg-blue-50 border-l-4 border-blue-400">
-            <p className="text-gray-700 mb-2">Connect your Oura Ring for real-time sleep, readiness, and heart rate insights.</p>
+            <p className="text-gray-700 mb-2">Connect your Oura Ring to see Recovery Metrics.</p>
             <Link href="/profile" className="text-blue-600 font-semibold text-sm hover:underline">
               Go to Settings →
             </Link>
           </div>
-        ) : null}
+        )}
 
         {/* Current Run Level */}
         <div className="card mb-6">
