@@ -356,14 +356,18 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 p-6 max-w-4xl">
         {/* Oura Recovery Metrics */}
-        {ouraStatus?.connected ? (
+        {ouraStatus ? (
           <div className="card mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Recovery Metrics</h2>
             <div className="grid grid-cols-3 gap-4">
               {/* Resilience */}
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Resilience</p>
-                <p className="text-4xl font-bold text-blue-600">{ouraStatus.resilience_score ?? '—'}</p>
+                <p className="text-4xl font-bold text-blue-600">
+                  {ouraStatus.resilience_score !== undefined && ouraStatus.resilience_score !== null
+                    ? ouraStatus.resilience_score
+                    : '—'}
+                </p>
                 {ouraStatus.resilience_level && (
                   <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.resilience_level}</p>
                 )}
@@ -372,7 +376,11 @@ export default function Dashboard() {
               {/* Rest */}
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Rest</p>
-                <p className="text-4xl font-bold text-green-600">{ouraStatus.rest_score ?? '—'}</p>
+                <p className="text-4xl font-bold text-green-600">
+                  {ouraStatus.rest_score !== undefined && ouraStatus.rest_score !== null
+                    ? ouraStatus.rest_score
+                    : '—'}
+                </p>
                 {ouraStatus.rest_level && (
                   <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.rest_level}</p>
                 )}
@@ -381,12 +389,19 @@ export default function Dashboard() {
               {/* Activity */}
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Activity</p>
-                <p className="text-4xl font-bold text-yellow-600">{ouraStatus.activity_score ?? '—'}</p>
+                <p className="text-4xl font-bold text-yellow-600">
+                  {ouraStatus.activity_score !== undefined && ouraStatus.activity_score !== null
+                    ? ouraStatus.activity_score
+                    : '—'}
+                </p>
                 {ouraStatus.activity_level && (
                   <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.activity_level}</p>
                 )}
               </div>
             </div>
+            {!ouraStatus.connected && (
+              <p className="text-xs text-gray-500 mt-4">Oura not connected</p>
+            )}
           </div>
         ) : (
           <div className="card mb-6 bg-blue-50 border-l-4 border-blue-400">
