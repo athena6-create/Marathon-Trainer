@@ -169,6 +169,40 @@ export default function Dashboard() {
     return 'text-red-900';
   };
 
+  const getMetricColor = (score: number | null) => {
+    if (score === null || score === undefined) {
+      return { backgroundColor: 'rgb(229, 231, 235)' }; // gray-200
+    }
+
+    // Smooth gradient scale: red (0-50) → yellow (50-75) → green (75-100)
+    let r, g, b;
+
+    if (score <= 50) {
+      // Red to Yellow: (255, 0, 0) to (255, 255, 0)
+      const ratio = score / 50;
+      r = 255;
+      g = Math.round(255 * ratio);
+      b = 0;
+    } else if (score <= 75) {
+      // Yellow to Green: (255, 255, 0) to (34, 197, 94)
+      const ratio = (score - 50) / 25;
+      r = Math.round(255 - 221 * ratio);
+      g = Math.round(255 - 58 * ratio);
+      b = Math.round(0 + 94 * ratio);
+    } else {
+      // Green: (34, 197, 94)
+      const ratio = (score - 75) / 25;
+      r = Math.round(34 - 34 * ratio);
+      g = Math.round(197);
+      b = Math.round(94 + 106 * ratio);
+    }
+
+    return {
+      backgroundColor: `rgb(${r}, ${g}, ${b})`,
+      color: score >= 60 ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+    };
+  };
+
   const handleRepeatPrevious = async () => {
     if (!user || !profile) return;
     setRepeatLoading(true);
@@ -361,41 +395,71 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Recovery Metrics</h2>
             <div className="grid grid-cols-3 gap-4">
               {/* Resilience */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Resilience</p>
-                <p className="text-4xl font-bold text-blue-600">
+              <div
+                className="p-4 rounded-lg border transition-colors"
+                style={{
+                  ...getMetricColor(ouraStatus.resilience_score),
+                  borderColor: 'rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <p className="text-xs font-semibold mb-2" style={{ opacity: 0.7 }}>
+                  Resilience
+                </p>
+                <p className="text-4xl font-bold">
                   {ouraStatus.resilience_score !== undefined && ouraStatus.resilience_score !== null
                     ? ouraStatus.resilience_score
                     : '—'}
                 </p>
                 {ouraStatus.resilience_level && (
-                  <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.resilience_level}</p>
+                  <p className="text-xs mt-2 capitalize" style={{ opacity: 0.7 }}>
+                    {ouraStatus.resilience_level}
+                  </p>
                 )}
               </div>
 
               {/* Rest */}
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Rest</p>
-                <p className="text-4xl font-bold text-green-600">
+              <div
+                className="p-4 rounded-lg border transition-colors"
+                style={{
+                  ...getMetricColor(ouraStatus.rest_score),
+                  borderColor: 'rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <p className="text-xs font-semibold mb-2" style={{ opacity: 0.7 }}>
+                  Rest
+                </p>
+                <p className="text-4xl font-bold">
                   {ouraStatus.rest_score !== undefined && ouraStatus.rest_score !== null
                     ? ouraStatus.rest_score
                     : '—'}
                 </p>
                 {ouraStatus.rest_level && (
-                  <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.rest_level}</p>
+                  <p className="text-xs mt-2 capitalize" style={{ opacity: 0.7 }}>
+                    {ouraStatus.rest_level}
+                  </p>
                 )}
               </div>
 
               {/* Activity */}
-              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Activity</p>
-                <p className="text-4xl font-bold text-yellow-600">
+              <div
+                className="p-4 rounded-lg border transition-colors"
+                style={{
+                  ...getMetricColor(ouraStatus.activity_score),
+                  borderColor: 'rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <p className="text-xs font-semibold mb-2" style={{ opacity: 0.7 }}>
+                  Activity
+                </p>
+                <p className="text-4xl font-bold">
                   {ouraStatus.activity_score !== undefined && ouraStatus.activity_score !== null
                     ? ouraStatus.activity_score
                     : '—'}
                 </p>
                 {ouraStatus.activity_level && (
-                  <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.activity_level}</p>
+                  <p className="text-xs mt-2 capitalize" style={{ opacity: 0.7 }}>
+                    {ouraStatus.activity_level}
+                  </p>
                 )}
               </div>
             </div>
