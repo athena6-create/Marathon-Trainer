@@ -135,14 +135,15 @@ export default function WorkoutHistory() {
                 {/* Header: Date and Delete Button */}
                 <div className="flex justify-between items-start mb-3">
                   <p className="text-sm font-semibold text-gray-600">
-                    {new Date(workout.workout_date + 'T00:00:00Z').toLocaleDateString(
-                      'en-US',
-                      {
+                    {(() => {
+                      const [year, month, day] = workout.workout_date.split('-');
+                      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                      return date.toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric',
-                      }
-                    )}
+                      });
+                    })()}
                   </p>
                   <button
                     onClick={() => handleDeleteWorkout(workout.id)}
