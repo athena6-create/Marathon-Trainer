@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     try {
       activityData = await fetchOuraDailyActivity(accessToken, start, end);
-      console.log("Activity data fetched:", activityData);
+      console.log("Activity data fetched:", JSON.stringify(activityData, null, 2));
     } catch (error: any) {
       console.error("Activity fetch error:", error.message);
       if (error.message === "OURA_TOKEN_EXPIRED") {
@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
       const readiness = readinessMap.get(sleep.day);
       const activity = activityMap.get(sleep.day);
 
-      return {
+      const snapshot = {
         user_id: userId,
         snapshot_date: sleep.day,
-        sleep_duration: Math.round(sleep.total_sleep_duration / 60), // convert seconds to minutes
+        sleep_duration: Math.round(sleep.total_sleep_duration / 60),
         sleep_score: sleep.score,
         sleep_deep: Math.round((sleep.contributors?.deep_sleep || 0) / 60),
         sleep_light: Math.round((sleep.contributors?.light_sleep || 0) / 60),
@@ -151,6 +151,13 @@ export async function POST(request: NextRequest) {
         steps: activity?.steps || null,
         synced_at: new Date().toISOString(),
       };
+
+      if (activity) {
+        console.log(`Activity for ${sleep.day}:`, JSON.stringify(activity, null, 2));
+        console.log(`Extracted activity_score: ${snapshot.activity_score}`);
+      }
+
+      return snapshot;
     });
 
     // Upsert into oura_daily_snapshot (use service role to bypass RLS)
