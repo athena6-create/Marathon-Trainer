@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if Oura is connected
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("athlete_profile")
       .select("oura_access_token, oura_synced_at")
       .eq("user_id", userId)
@@ -25,59 +25,51 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get today's snapshot, or yesterday's if today's doesn't exist yet
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-
-    const { data: todaySnapshot } = await supabaseAdmin
+    // Get the most recent snapshot for this user
+    const { data: latestSnapshot, error: snapshotError } = await supabaseAdmin
       .from("oura_daily_snapshot")
       .select("*")
       .eq("user_id", userId)
-      .eq("snapshot_date", today)
+      .order("snapshot_date", { ascending: false })
+      .limit(1)
       .single();
 
-    let snapshotToUse = todaySnapshot;
+    console.log("Latest snapshot query result:", { latestSnapshot, snapshotError });
 
-    // If no data for today, try yesterday
-    if (!snapshotToUse) {
-      const { data: yesterdaySnapshot } = await supabaseAdmin
-        .from("oura_daily_snapshot")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("snapshot_date", yesterday)
-        .single();
-      snapshotToUse = yesterdaySnapshot;
+    if (snapshotError) {
+      console.error("Snapshot query error:", snapshotError);
+      return NextResponse.json({
+        connected: true,
+        lastSyncedAt: profile.oura_synced_at,
+        todaySnapshot: null,
+        resilience_score: null,
+        resilience_level: null,
+        rest_score: null,
+        rest_level: null,
+        activity_score: null,
+        activity_level: null,
+      });
     }
-
-    // Get last 14 days to calculate baselines
-    const twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-    const startDate = twoWeeksAgo.toISOString().split("T")[0];
-
-    const { data: recentSnapshots } = await supabaseAdmin
-      .from("oura_daily_snapshot")
-      .select("sleep_score, readiness_score, activity_score")
-      .eq("user_id", userId)
-      .gte("snapshot_date", startDate)
-      .lte("snapshot_date", today);
 
     // Calculate levels based on scores (0-100 scale)
     const getLevel = (score: number | null) => {
-      if (score === null) return null;
+      if (score === null || score === undefined) return null;
       if (score >= 70) return 'green';
       if (score >= 50) return 'yellow';
       return 'red';
     };
 
-    // Get today's scores
-    const resilience_score = snapshotToUse?.readiness_score || null;
-    const rest_score = snapshotToUse?.sleep_score || null;
-    const activity_score = snapshotToUse?.activity_score || null;
+    // Extract scores from snapshot
+    const resilience_score = latestSnapshot?.readiness_score || null;
+    const rest_score = latestSnapshot?.sleep_score || null;
+    const activity_score = latestSnapshot?.activity_score || null;
+
+    console.log("Extracted scores:", { resilience_score, rest_score, activity_score });
 
     return NextResponse.json({
       connected: true,
       lastSyncedAt: profile.oura_synced_at,
-      todaySnapshot: snapshotToUse || null,
+      todaySnapshot: latestSnapshot || null,
       resilience_score: resilience_score,
       resilience_level: getLevel(resilience_score),
       rest_score: rest_score,
