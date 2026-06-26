@@ -404,11 +404,6 @@ export default function Dashboard() {
                     ? ouraStatus.resilience_score
                     : '—'}
                 </p>
-                {ouraStatus.resilience_level && (
-                  <p className="text-xs mt-2 capitalize" style={{ opacity: 0.7 }}>
-                    {ouraStatus.resilience_level}
-                  </p>
-                )}
               </div>
 
               {/* Rest */}
@@ -427,11 +422,6 @@ export default function Dashboard() {
                     ? ouraStatus.rest_score
                     : '—'}
                 </p>
-                {ouraStatus.rest_level && (
-                  <p className="text-xs mt-2 capitalize" style={{ opacity: 0.7 }}>
-                    {ouraStatus.rest_level}
-                  </p>
-                )}
               </div>
 
               {/* Activity */}
@@ -450,11 +440,6 @@ export default function Dashboard() {
                     ? ouraStatus.activity_score
                     : '—'}
                 </p>
-                {ouraStatus.activity_level && (
-                  <p className="text-xs mt-2 capitalize" style={{ opacity: 0.7 }}>
-                    {ouraStatus.activity_level}
-                  </p>
-                )}
               </div>
             </div>
             {!ouraStatus.connected && (
