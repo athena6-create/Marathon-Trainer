@@ -56,52 +56,10 @@ export async function POST(request: NextRequest) {
 
     const { data: recentSnapshots } = await supabaseAdmin
       .from("oura_daily_snapshot")
-      .select("hrv, resting_heart_rate, sleep_score, readiness_score, activity_score, rest_score, resilience_score")
+      .select("sleep_score, readiness_score, activity_score")
       .eq("user_id", userId)
       .gte("snapshot_date", startDate)
       .lte("snapshot_date", today);
-
-    // Calculate baselines
-    let baselineHrv = 0;
-    let baselineRestingHr = 0;
-    let baselineSleepScore = 0;
-    let baselineReadiness = 0;
-
-    if (recentSnapshots && recentSnapshots.length > 0) {
-      const validHrv = recentSnapshots.filter((s) => s.hrv && s.hrv > 0);
-      const validRhr = recentSnapshots.filter((s) => s.resting_heart_rate && s.resting_heart_rate > 0);
-      const validSleep = recentSnapshots.filter((s) => s.sleep_score);
-      const validReadiness = recentSnapshots.filter((s) => s.readiness_score);
-
-      if (validHrv.length > 0) {
-        baselineHrv = Math.round(
-          validHrv.reduce((sum, s) => sum + (s.hrv || 0), 0) / validHrv.length
-        );
-      }
-
-      if (validRhr.length > 0) {
-        baselineRestingHr = Math.round(
-          validRhr.reduce((sum, s) => sum + (s.resting_heart_rate || 0), 0) / validRhr.length
-        );
-      }
-
-      if (validSleep.length > 0) {
-        baselineSleepScore = Math.round(
-          validSleep.reduce((sum, s) => sum + (s.sleep_score || 0), 0) / validSleep.length
-        );
-      }
-
-      if (validReadiness.length > 0) {
-        baselineReadiness = Math.round(
-          validReadiness.reduce((sum, s) => sum + (s.readiness_score || 0), 0) / validReadiness.length
-        );
-      }
-    }
-
-    // Extract scores from snapshot
-    const resilience_score = snapshotToUse?.resilience_score || null;
-    const rest_score = snapshotToUse?.rest_score || null;
-    const activity_score = snapshotToUse?.activity_score || null;
 
     // Calculate levels based on scores (0-100 scale)
     const getLevel = (score: number | null) => {
@@ -110,6 +68,11 @@ export async function POST(request: NextRequest) {
       if (score >= 50) return 'yellow';
       return 'red';
     };
+
+    // Get today's scores
+    const resilience_score = snapshotToUse?.readiness_score || null;
+    const rest_score = snapshotToUse?.sleep_score || null;
+    const activity_score = snapshotToUse?.activity_score || null;
 
     return NextResponse.json({
       connected: true,
@@ -121,12 +84,6 @@ export async function POST(request: NextRequest) {
       rest_level: getLevel(rest_score),
       activity_score: activity_score,
       activity_level: getLevel(activity_score),
-      baselines: {
-        hrv: baselineHrv,
-        restingHeartRate: baselineRestingHr,
-        sleepScore: baselineSleepScore,
-        readinessScore: baselineSleepScore,
-      },
     });
   } catch (error) {
     console.error("Oura status error:", error);
