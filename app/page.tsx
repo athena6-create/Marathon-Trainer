@@ -171,24 +171,24 @@ export default function Dashboard() {
 
   const getMetricColor = (score: number | null) => {
     if (score === null || score === undefined) {
-      return { backgroundColor: 'rgb(243, 244, 246)', color: 'rgb(107, 114, 128)' }; // gray-100
+      return { backgroundColor: 'rgb(248, 249, 250)', color: 'rgb(75, 85, 99)' };
     }
 
-    // Muted color scale - flat colors per range
+    // Pastel color scale - very light backgrounds with dark popping text
     let backgroundColor, textColor;
 
     if (score < 50) {
-      // Muted red
-      backgroundColor = 'rgb(229, 161, 161)'; // Light muted red
-      textColor = 'rgb(120, 53, 53)'; // Dark red text
+      // Pastel red
+      backgroundColor = 'rgb(255, 230, 230)'; // Very light pastel red
+      textColor = 'rgb(100, 20, 20)'; // Dark red text
     } else if (score < 75) {
-      // Muted yellow
-      backgroundColor = 'rgb(237, 208, 130)'; // Light muted yellow
-      textColor = 'rgb(120, 85, 30)'; // Dark yellow text
+      // Pastel yellow
+      backgroundColor = 'rgb(255, 250, 210)'; // Very light pastel yellow
+      textColor = 'rgb(100, 80, 0)'; // Dark yellow-brown text
     } else {
-      // Muted green
-      backgroundColor = 'rgb(162, 210, 155)'; // Light muted green
-      textColor = 'rgb(55, 100, 50)'; // Dark green text
+      // Pastel green
+      backgroundColor = 'rgb(230, 250, 225)'; // Very light pastel green
+      textColor = 'rgb(20, 80, 30)'; // Dark green text
     }
 
     return {
