@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const { data: recentSnapshots } = await supabaseAdmin
       .from("oura_daily_snapshot")
-      .select("hrv, resting_heart_rate, sleep_score, readiness_score, activity_score")
+      .select("hrv, resting_heart_rate, sleep_score, readiness_score, activity_score, rest_score, resilience_score")
       .eq("user_id", userId)
       .gte("snapshot_date", startDate)
       .lte("snapshot_date", today);
@@ -98,10 +98,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Extract scores from snapshot
+    const resilience_score = snapshotToUse?.resilience_score || null;
+    const rest_score = snapshotToUse?.rest_score || null;
+    const activity_score = snapshotToUse?.activity_score || null;
+
+    // Calculate levels based on scores (0-100 scale)
+    const getLevel = (score: number | null) => {
+      if (score === null) return null;
+      if (score >= 70) return 'green';
+      if (score >= 50) return 'yellow';
+      return 'red';
+    };
+
     return NextResponse.json({
       connected: true,
       lastSyncedAt: profile.oura_synced_at,
       todaySnapshot: snapshotToUse || null,
+      resilience_score: resilience_score,
+      resilience_level: getLevel(resilience_score),
+      rest_score: rest_score,
+      rest_level: getLevel(rest_score),
+      activity_score: activity_score,
+      activity_level: getLevel(activity_score),
       baselines: {
         hrv: baselineHrv,
         restingHeartRate: baselineRestingHr,

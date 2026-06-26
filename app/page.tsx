@@ -363,19 +363,28 @@ export default function Dashboard() {
               {/* Resilience */}
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Resilience</p>
-                <p className="text-4xl font-bold text-blue-600">{ouraStatus.resilience_level || '—'}</p>
+                <p className="text-4xl font-bold text-blue-600">{ouraStatus.resilience_score ?? '—'}</p>
+                {ouraStatus.resilience_level && (
+                  <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.resilience_level}</p>
+                )}
               </div>
 
               {/* Rest */}
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Rest</p>
-                <p className="text-4xl font-bold text-green-600">{ouraStatus.rest_level || '—'}</p>
+                <p className="text-4xl font-bold text-green-600">{ouraStatus.rest_score ?? '—'}</p>
+                {ouraStatus.rest_level && (
+                  <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.rest_level}</p>
+                )}
               </div>
 
               {/* Activity */}
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Activity</p>
-                <p className="text-4xl font-bold text-yellow-600">{ouraStatus.activity_level || '—'}</p>
+                <p className="text-4xl font-bold text-yellow-600">{ouraStatus.activity_score ?? '—'}</p>
+                {ouraStatus.activity_level && (
+                  <p className="text-xs text-gray-600 mt-2 capitalize">{ouraStatus.activity_level}</p>
+                )}
               </div>
             </div>
           </div>
