@@ -213,13 +213,6 @@ export default function Dashboard() {
             Log Workout
           </Link>
           <Link
-            href="/training"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white hover:text-blue-600 transition-colors font-medium text-sm"
-          >
-            <span>🏃‍♂️</span>
-            Training Assistant
-          </Link>
-          <Link
             href="/history"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white hover:text-blue-600 transition-colors font-medium text-sm"
           >
