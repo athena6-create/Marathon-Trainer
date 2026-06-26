@@ -171,35 +171,29 @@ export default function Dashboard() {
 
   const getMetricColor = (score: number | null) => {
     if (score === null || score === undefined) {
-      return { backgroundColor: 'rgb(229, 231, 235)' }; // gray-200
+      return { backgroundColor: 'rgb(243, 244, 246)', color: 'rgb(107, 114, 128)' }; // gray-100
     }
 
-    // Smooth gradient scale: red (0-50) → yellow (50-75) → green (75-100)
-    let r, g, b;
+    // Muted color scale - flat colors per range
+    let backgroundColor, textColor;
 
-    if (score <= 50) {
-      // Red to Yellow: (255, 0, 0) to (255, 255, 0)
-      const ratio = score / 50;
-      r = 255;
-      g = Math.round(255 * ratio);
-      b = 0;
-    } else if (score <= 75) {
-      // Yellow to Green: (255, 255, 0) to (34, 197, 94)
-      const ratio = (score - 50) / 25;
-      r = Math.round(255 - 221 * ratio);
-      g = Math.round(255 - 58 * ratio);
-      b = Math.round(0 + 94 * ratio);
+    if (score < 50) {
+      // Muted red
+      backgroundColor = 'rgb(229, 161, 161)'; // Light muted red
+      textColor = 'rgb(120, 53, 53)'; // Dark red text
+    } else if (score < 75) {
+      // Muted yellow
+      backgroundColor = 'rgb(237, 208, 130)'; // Light muted yellow
+      textColor = 'rgb(120, 85, 30)'; // Dark yellow text
     } else {
-      // Green: (34, 197, 94)
-      const ratio = (score - 75) / 25;
-      r = Math.round(34 - 34 * ratio);
-      g = Math.round(197);
-      b = Math.round(94 + 106 * ratio);
+      // Muted green
+      backgroundColor = 'rgb(162, 210, 155)'; // Light muted green
+      textColor = 'rgb(55, 100, 50)'; // Dark green text
     }
 
     return {
-      backgroundColor: `rgb(${r}, ${g}, ${b})`,
-      color: score >= 60 ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+      backgroundColor,
+      color: textColor,
     };
   };
 
