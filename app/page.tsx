@@ -367,32 +367,36 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Readiness Score */}
-              {ouraStatus.todaySnapshot.readiness_score && (
-                <div className={`bg-gradient-to-br ${getScoreColor(ouraStatus.todaySnapshot.readiness_score)} p-4 rounded-lg`}>
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Readiness</p>
-                  <p className="text-3xl font-bold text-gray-900">{ouraStatus.todaySnapshot.readiness_score}</p>
-                  {ouraStatus.baselines.readinessScore && (
-                    <p className="text-xs text-gray-600 mt-1">
-                      Avg: {ouraStatus.baselines.readinessScore}
-                    </p>
-                  )}
-                </div>
-              )}
+            <div className="grid grid-cols-3 gap-4">
+              {/* Rest/Readiness */}
+              <div className={`bg-gradient-to-br ${
+                ouraStatus.rest_level === 'green' ? 'from-green-200 to-green-100' :
+                ouraStatus.rest_level === 'yellow' ? 'from-yellow-200 to-yellow-100' :
+                'from-red-200 to-red-100'
+              } p-4 rounded-lg`}>
+                <p className="text-xs font-semibold text-gray-600 mb-2">Rest</p>
+                <p className="text-2xl font-bold text-gray-900">{ouraStatus.rest_level?.toUpperCase() || '—'}</p>
+              </div>
 
-              {/* Sleep Score */}
-              {ouraStatus.todaySnapshot.sleep_score && (
-                <div className={`bg-gradient-to-br ${getScoreColor(ouraStatus.todaySnapshot.sleep_score)} p-4 rounded-lg`}>
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Sleep</p>
-                  <p className="text-3xl font-bold text-gray-900">{ouraStatus.todaySnapshot.sleep_score}</p>
-                  {ouraStatus.baselines.sleepScore && (
-                    <p className="text-xs text-gray-600 mt-1">
-                      Avg: {ouraStatus.baselines.sleepScore}
-                    </p>
-                  )}
-                </div>
-              )}
+              {/* Resilience */}
+              <div className={`bg-gradient-to-br ${
+                ouraStatus.resilience_level === 'green' ? 'from-green-200 to-green-100' :
+                ouraStatus.resilience_level === 'yellow' ? 'from-yellow-200 to-yellow-100' :
+                'from-red-200 to-red-100'
+              } p-4 rounded-lg`}>
+                <p className="text-xs font-semibold text-gray-600 mb-2">Resilience</p>
+                <p className="text-2xl font-bold text-gray-900">{ouraStatus.resilience_level?.toUpperCase() || '—'}</p>
+              </div>
+
+              {/* Activity */}
+              <div className={`bg-gradient-to-br ${
+                ouraStatus.activity_level === 'green' ? 'from-green-200 to-green-100' :
+                ouraStatus.activity_level === 'yellow' ? 'from-yellow-200 to-yellow-100' :
+                'from-red-200 to-red-100'
+              } p-4 rounded-lg`}>
+                <p className="text-xs font-semibold text-gray-600 mb-2">Activity</p>
+                <p className="text-2xl font-bold text-gray-900">{ouraStatus.activity_level?.toUpperCase() || '—'}</p>
+              </div>
             </div>
           </div>
         ) : ouraStatus?.connected === false ? (
