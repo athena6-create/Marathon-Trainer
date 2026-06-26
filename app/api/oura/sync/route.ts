@@ -132,6 +132,12 @@ export async function POST(request: NextRequest) {
       const readiness = readinessMap.get(sleep.day);
       const activity = activityMap.get(sleep.day);
 
+      // Extract activity score - try multiple field names
+      let activityScore = null;
+      if (activity) {
+        activityScore = activity.score || activity.activity_score || activity.activityScore || null;
+      }
+
       const snapshot = {
         user_id: userId,
         snapshot_date: sleep.day,
@@ -146,15 +152,19 @@ export async function POST(request: NextRequest) {
         resting_heart_rate: readiness?.resting_heart_rate || null,
         hrv: Math.round(sleep.average_hrv || 0),
         body_temperature_deviation: readiness?.temperature_deviation || null,
-        activity_score: activity?.score || null,
+        activity_score: activityScore,
         active_calories: activity?.active_calories || null,
         steps: activity?.steps || null,
         synced_at: new Date().toISOString(),
       };
 
       if (activity) {
-        console.log(`Activity for ${sleep.day}:`, JSON.stringify(activity, null, 2));
+        console.log(`\n=== Activity for ${sleep.day} ===`);
+        console.log(`Raw activity object:`, JSON.stringify(activity, null, 2));
         console.log(`Extracted activity_score: ${snapshot.activity_score}`);
+        console.log(`Activity keys: ${Object.keys(activity).join(', ')}`);
+      } else {
+        console.log(`No activity data for ${sleep.day}`);
       }
 
       return snapshot;
