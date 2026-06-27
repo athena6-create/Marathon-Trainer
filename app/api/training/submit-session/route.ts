@@ -92,7 +92,7 @@ ${patternContext}
 
 ${researchedWorkout ? `Researched workout option:\n${JSON.stringify(researchedWorkout, null, 2)}` : ''}
 
-Generate a conservative, safety-first recommendation. Return ONLY valid JSON (no markdown):
+Generate a conservative, safety-first, HIGHLY PRESCRIPTIVE recommendation. Return ONLY valid JSON (no markdown):
 
 {
   "summary": "1-2 sentence summary of the workout",
@@ -103,12 +103,19 @@ Generate a conservative, safety-first recommendation. Return ONLY valid JSON (no
   "watch_outs": "Warning signs to watch (or null if none)",
   "workout": null or {
     "name": "Workout name",
-    "category": "knee-strength|hip-glute|calf-ankle|core|upper-body|mobility|recovery",
+    "category": "knee-strength|hip-glute|calf-ankle|core|upper-body|mobility|recovery|run",
+    "type": "run|walk|strength|mobility|recovery",
+    "duration_minutes": 30,
+    "jog_interval": "5 min",
+    "walk_interval": "2 min",
+    "repetitions": 5,
+    "total_duration": "35 minutes",
+    "intensity": "moderate",
     "exercises": [
-      {"name": "Exercise", "sets": 2, "reps": "10-12"}
+      {"name": "Exercise name", "sets": 3, "reps": "12-15", "weight": "bodyweight or 10 lbs", "rest_seconds": 60}
     ]
   },
-  "next_run": "Recommendation for next run (repeat, progress, or deload)",
+  "prescription": "EXACT workout prescription: If run: '5 min jog / 2 min walk x 5 rounds = 35 min total'. If strength: List each exercise with exact sets, reps, and weight. Be specific and actionable.",
   "progression_note": "Guidance on run level progression"
 }
 

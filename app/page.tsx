@@ -717,6 +717,13 @@ export default function Dashboard() {
               </div>
             )}
 
+            {(recommendation as any).prescription && (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded">
+                <p className="text-sm font-semibold text-gray-900 mb-2">📋 Exact Prescription:</p>
+                <p className="text-gray-900 font-mono text-sm whitespace-pre-wrap">{(recommendation as any).prescription}</p>
+              </div>
+            )}
+
             <div className="mb-4">
               <p className="text-sm font-semibold text-gray-900 mb-2">Rationale:</p>
               <p className="text-gray-700 text-sm">{recommendation.rationale}</p>
@@ -936,10 +943,6 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Workout Analysis</h3>
                 <div className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed mb-6">
                   {analysisText}
-                </div>
-                <div className="bg-white p-4 rounded border border-purple-200 mb-6">
-                  <p className="text-xs text-gray-600 mb-2">🔍 Claude is analyzing your patterns across all workouts...</p>
-                  <p className="text-xs text-gray-600">This helps future recommendations adapt to YOUR personal thresholds.</p>
                 </div>
               </div>
 
