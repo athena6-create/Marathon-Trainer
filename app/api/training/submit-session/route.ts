@@ -11,9 +11,7 @@ export async function POST(request: NextRequest) {
       userId,
       structured_data,
       questionnaire_answers,
-      oura_rest,
-      oura_resilience,
-      oura_activity,
+      oura_snapshot,
       run_level,
     } = await request.json();
 
@@ -35,12 +33,10 @@ export async function POST(request: NextRequest) {
     const allData = {
       ...structured_data,
       ...questionnaire_answers,
-      oura_rest,
-      oura_resilience,
-      oura_activity,
     };
 
     console.log('Merged workout data:', JSON.stringify(allData, null, 2));
+    console.log('Oura snapshot:', JSON.stringify(oura_snapshot, null, 2));
 
     // Determine if we need live research
     const needsResearch = determineLiveResearchNeeds(allData, run_level);
@@ -61,10 +57,13 @@ Current training state:
 Today's workout:
 ${JSON.stringify(allData, null, 2)}
 
-Oura recovery status:
-- Rest: ${oura_rest}
-- Resilience: ${oura_resilience}
-- Activity: ${oura_activity}
+Oura Ring recovery data (IMPORTANT - use this to inform recommendations):
+- Sleep score: ${oura_snapshot?.sleep_score} (0-100, higher is better)
+- Sleep duration: ${oura_snapshot?.sleep_duration} minutes
+- Readiness/Resilience: ${oura_snapshot?.resilience_score} (0-100, higher is better)
+- Activity level: ${oura_snapshot?.activity_score} (0-100)
+- HRV: ${oura_snapshot?.hrv} (higher is better for recovery)
+- Resting heart rate: ${oura_snapshot?.resting_heart_rate} bpm (lower is better)
 
 ${researchedWorkout ? `Researched workout option:\n${JSON.stringify(researchedWorkout, null, 2)}` : ''}
 
@@ -88,17 +87,17 @@ Generate a conservative, safety-first recommendation. Return ONLY valid JSON (no
   "progression_note": "Guidance on run level progression"
 }
 
-Decision rules:
-- Knee pain 5+ = no running, suggest professional eval
-- Knee pain 3-4 = no progression, suggest strength/mobility/walk
-- Knee pain 0-2 + completed + low fatigue = may progress
-- Oura red = avoid progression, prefer rest/walk/mobility
+Decision rules - COMBINE workout performance WITH Oura data:
+- Oura readiness <50 + any fatigue = REST day, no progression
+- Oura readiness 50-75 = conservative, repeat level or easy workout
+- Oura readiness ≥75 + completed + low effort = may progress
+- Poor sleep (<60 score) = prioritize recovery over progression
+- High HRV + good sleep + ready feeling = ready for harder effort
 - Perceived effort 8-10 = repeat same level, don't progress
-- Missing intervals = repeat level, don't progress
-- First time at level but struggling = repeat, don't progress
-- Second+ completion at level + low pain + good recovery = may progress
+- Completed workout + low fatigue + high readiness = progress ready
+- Workout feeling < completion = repeat level, assess recovery
 
-Be conservative. When in doubt, repeat the level or suggest recovery.`;
+Use Oura as ground truth for recovery state. Be conservative. When in doubt, repeat the level or suggest recovery.`;
 
     const response = await client.messages.create({
       model: 'claude-opus-4-1',
@@ -139,9 +138,7 @@ Be conservative. When in doubt, repeat the level or suggest recovery.`;
         raw_note: structured_data.raw_note,
         structured_data: structured_data,
         questionnaire_answers: questionnaire_answers,
-        oura_rest,
-        oura_resilience,
-        oura_activity,
+        oura_snapshot: oura_snapshot,
         recommendation: recommendation.recommendation,
         next_action: recommendation.next_action,
       })

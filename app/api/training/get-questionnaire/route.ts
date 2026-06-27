@@ -5,20 +5,26 @@ const client = new Anthropic();
 
 export async function POST(request: NextRequest) {
   try {
-    const { structured_data } = await request.json();
+    const { structured_data, oura_data } = await request.json();
 
     const questionnairePrompt = `You are a beginner running coach. Based on extracted workout data, generate 2-4 dynamic follow-up questions.
 
-Extracted data:
+Extracted workout data:
 ${JSON.stringify(structured_data, null, 2)}
+
+Available Oura data (from user's ring):
+${JSON.stringify(oura_data, null, 2)}
 
 Generate follow-up questions ONLY for:
 1. Missing key fields (distance_description, aerobic_difficulty, general_soreness)
 2. Concerning signals (high fatigue, warning signs)
 3. Readiness to progress (completed workout, effort level)
-4. Recovery assessment
+4. Recovery assessment (only if NOT already covered by Oura data)
 
-DO NOT ask about: knee pain, specific body areas, or anything already captured
+DO NOT ask about:
+- Sleep/hours slept (we have Oura sleep_score and sleep_duration)
+- Knee pain, specific body areas, or anything already captured
+- Any metric that Oura already has`
 
 Return ONLY valid JSON array (no markdown, no code fence) with questions:
 

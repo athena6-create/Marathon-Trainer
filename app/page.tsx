@@ -315,6 +315,12 @@ export default function Dashboard() {
         body: JSON.stringify({
           userId: user.id,
           structured_data: extracted.data,
+          oura_data: {
+            sleep_score: ouraStatus?.todaySnapshot?.sleep_score,
+            sleep_duration: ouraStatus?.todaySnapshot?.sleep_duration,
+            resilience_score: ouraStatus?.resilience_score,
+            activity_score: ouraStatus?.activity_score,
+          },
         }),
       });
 
@@ -341,9 +347,14 @@ export default function Dashboard() {
           userId: user.id,
           structured_data: currentSession.structured_data,
           questionnaire_answers: questionnaireAnswers,
-          oura_rest: currentSession.oura_rest,
-          oura_resilience: currentSession.oura_resilience,
-          oura_activity: currentSession.oura_activity,
+          oura_snapshot: {
+            sleep_score: ouraStatus?.todaySnapshot?.sleep_score,
+            sleep_duration: ouraStatus?.todaySnapshot?.sleep_duration,
+            resilience_score: ouraStatus?.resilience_score,
+            activity_score: ouraStatus?.activity_score,
+            hrv: ouraStatus?.todaySnapshot?.hrv,
+            resting_heart_rate: ouraStatus?.todaySnapshot?.resting_heart_rate,
+          },
           run_level: trainingState?.current_run_level || 4,
         }),
       });
