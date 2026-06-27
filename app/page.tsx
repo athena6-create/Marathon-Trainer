@@ -31,7 +31,7 @@ export default function Dashboard() {
 
   const syncOuraData = async (userId: string) => {
     try {
-      console.log('Syncing Oura data...');
+      console.log('🔄 Syncing Oura data...');
       setSyncing(true);
       const syncResponse = await fetch('/api/oura/sync', {
         method: 'POST',
@@ -39,7 +39,21 @@ export default function Dashboard() {
         body: JSON.stringify({ userId }),
       });
       const syncData = await syncResponse.json();
-      console.log('Sync result:', syncData);
+      console.log('✅ Sync result:', JSON.stringify(syncData, null, 2));
+
+      if (syncData.error) {
+        console.error('❌ Sync error:', syncData.error);
+        alert(`Sync failed: ${syncData.error}`);
+        return;
+      }
+
+      if (syncData.synced_days) {
+        console.log(`📊 Synced ${syncData.synced_days} days of data`);
+        if (syncData.snapshots && syncData.snapshots.length > 0) {
+          const latestDate = syncData.snapshots[0].snapshot_date;
+          console.log(`📅 Latest data: ${latestDate}`);
+        }
+      }
 
       // Fetch updated status
       const ouraResponse = await fetch('/api/oura/status', {
@@ -48,10 +62,11 @@ export default function Dashboard() {
         body: JSON.stringify({ userId }),
       });
       const ouraData = await ouraResponse.json();
-      console.log('Updated Oura data:', ouraData);
+      console.log('🎯 Updated Oura data:', ouraData);
       setOuraStatus(ouraData);
     } catch (error) {
-      console.error('Error syncing Oura data:', error);
+      console.error('❌ Error syncing Oura data:', error);
+      alert(`Sync error: ${error}`);
     } finally {
       setSyncing(false);
     }
