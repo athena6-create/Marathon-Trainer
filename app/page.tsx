@@ -361,10 +361,12 @@ export default function Dashboard() {
       });
 
       const result = await response.json();
+      console.log('📊 Recommendation response:', result);
       setTrainingRecommendation(result);
 
       // Show analysis first, with summary + readiness assessment
-      const analysis = `${result.summary}\n\n${result.readiness}\n\n${result.reasoning}`;
+      const analysis = `${result.summary || ''}\n\n${result.readiness || ''}\n\n${result.reasoning || ''}`;
+      console.log('📋 Analysis text:', analysis);
       setAnalysisText(analysis);
       setTrainingStep('analysis');
 
@@ -376,13 +378,6 @@ export default function Dashboard() {
         .order('session_date', { ascending: false })
         .limit(10);
       if (sessions) setWorkoutHistory(sessions);
-
-      const { data: updated } = await supabase
-        .from('training_state')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      if (updated) setTrainingState(updated);
 
       // Regenerate recommendation with updated data
       const recResponse = await fetch('/api/recommendation/generate', {
