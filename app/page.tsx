@@ -369,43 +369,6 @@ export default function Dashboard() {
       console.log('📋 Analysis text:', analysis);
       setAnalysisText(analysis);
       setTrainingStep('analysis');
-
-      // Refresh workout history and recommendation in background
-      const { data: sessions } = await supabase
-        .from('training_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('session_date', { ascending: false })
-        .limit(10);
-      if (sessions) setWorkoutHistory(sessions);
-
-      // Regenerate recommendation with updated data
-      const recResponse = await fetch('/api/recommendation/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
-      });
-      const recData = await recResponse.json();
-      if (recData.run_prescription) {
-        setRecommendation({
-          id: 'generated',
-          user_id: user.id,
-          triggered_by_workout_id: null,
-          recommended_date: new Date().toISOString().split('T')[0],
-          workout_type: 'run',
-          run_prescription: recData.run_prescription,
-          rationale: recData.rationale,
-          readiness_score: recData.oura_readiness,
-          risk_level: recData.oura_readiness >= 80 ? 'green' : recData.oura_readiness >= 60 ? 'yellow' : 'red',
-          user_acknowledged: false,
-          user_overridden: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          next_workout: recData.next_workout,
-          rest_status: recData.rest_status,
-        } as any);
-        setReadinessScore(recData.oura_readiness);
-      }
     } catch (error) {
       console.error('Error submitting session:', error);
       alert('Error generating recommendation');

@@ -47,14 +47,19 @@ export async function POST(request: NextRequest) {
       researchedWorkout = await performLiveResearch(allData, run_level, needsResearch);
     }
 
-    // Fetch existing pattern analysis for this user
-    const { data: trainingState } = await supabaseAdmin
-      .from('training_state')
-      .select('pattern_analysis')
-      .eq('user_id', userId)
-      .single();
+    // Fetch existing pattern analysis for this user (if available)
+    let patterns = null;
+    try {
+      const { data: trainingState } = await supabaseAdmin
+        .from('training_state')
+        .select('pattern_analysis')
+        .eq('user_id', userId)
+        .single();
+      patterns = trainingState?.pattern_analysis;
+    } catch (err) {
+      console.log('Pattern analysis not yet available');
+    }
 
-    const patterns = trainingState?.pattern_analysis;
     const patternContext = patterns
       ? `
 PERSONALIZED PATTERNS (from ${patterns.data_points || 'recent'} workouts):
@@ -194,14 +199,6 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
       .eq('user_id', userId);
 
     if (progressError) console.error('Progress update error:', progressError);
-
-    // Analyze patterns asynchronously (don't block response)
-    console.log('📊 Queuing pattern analysis...');
-    fetch('http://localhost:3000/api/training/analyze-patterns', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    }).catch(err => console.error('Pattern analysis queue failed:', err));
 
     console.log(`=== TRAINING SESSION END ===\n`);
 
