@@ -592,8 +592,10 @@ export default function Dashboard() {
             <p className="text-gray-700">No recommendation yet. Log your first workout to get started.</p>
           </div>
         )}
+      </div>
 
-        {/* Training Assistant */}
+      {/* Right Panel - Log Workout */}
+      <div className="w-1/3 border-l border-gray-200 p-6 flex flex-col h-screen overflow-y-auto bg-white sticky top-0">
         <div className="card mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Log Workout</h2>
 
@@ -737,8 +739,9 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Repeat Previous Modal */}
+      {/* Repeat Previous Modal */}
         {showRepeatModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -781,7 +784,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
