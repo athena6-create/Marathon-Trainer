@@ -5,6 +5,14 @@ import { WebSearch } from '@anthropic-ai/sdk/resources';
 
 const client = new Anthropic();
 
+// Extract first number from text (e.g., "148 bpm" → 148, "around 145" → 145)
+function extractNumber(text: any): number | null {
+  if (!text) return null;
+  if (typeof text === 'number') return text;
+  const match = String(text).match(/\d+(?:\.\d+)?/);
+  return match ? parseFloat(match[0]) : null;
+}
+
 export async function POST(request: NextRequest) {
   console.log('📝 [submit-session] Received request');
   try {
@@ -164,15 +172,15 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
         session_date: new Date().toISOString().split('T')[0],
         workout_type: structured_data.workout_type || 'run',
         completed: structured_data.completed,
-        duration_minutes: structured_data.duration_minutes,
-        distance_miles: structured_data.distance_miles,
-        avg_heart_rate: structured_data.avg_heart_rate,
-        max_heart_rate: structured_data.max_heart_rate,
-        perceived_effort: structured_data.perceived_effort,
-        knee_pain: structured_data.knee_pain,
-        general_soreness: structured_data.general_soreness,
-        fatigue: structured_data.fatigue,
-        breathing_difficulty: structured_data.breathing_difficulty,
+        duration_minutes: extractNumber(structured_data.duration_minutes),
+        distance_miles: extractNumber(structured_data.distance_miles),
+        avg_heart_rate: extractNumber(structured_data.avg_heart_rate),
+        max_heart_rate: extractNumber(structured_data.max_heart_rate),
+        perceived_effort: extractNumber(structured_data.perceived_effort),
+        knee_pain: extractNumber(structured_data.knee_pain),
+        general_soreness: extractNumber(structured_data.general_soreness),
+        fatigue: extractNumber(structured_data.fatigue),
+        breathing_difficulty: extractNumber(structured_data.breathing_difficulty),
         mood: structured_data.mood,
         raw_note: structured_data.raw_note,
         structured_data: structured_data,
