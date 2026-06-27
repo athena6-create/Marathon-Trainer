@@ -608,7 +608,7 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Current Run Level</h2>
             {recommendation && (
               <>
-                {recommendation.next_action?.toLowerCase().includes('progress') && (
+                {recommendation.next_action?.toLowerCase().includes('progress to next') && (
                   <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">
                     ✓ Ready to Progress
                   </span>
@@ -798,20 +798,39 @@ export default function Dashboard() {
           {historyOpen && (
             <div className="mt-4 space-y-3 max-h-64 overflow-y-auto">
               {workoutHistory.length > 0 ? (
-                workoutHistory.map((w) => (
-                  <div key={w.id} className="border-t border-gray-200 pt-3 text-sm">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-900 capitalize">{w.workout_type}</p>
-                        <p className="text-gray-600 text-xs">{new Date(w.session_date).toLocaleDateString()}</p>
+                workoutHistory.map((w) => {
+                  const structured = typeof w.structured_data === 'string' ? JSON.parse(w.structured_data) : w.structured_data;
+                  return (
+                    <div key={w.id} className="border-t border-gray-200 pt-3 text-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-medium text-gray-900 capitalize">{w.workout_type}</p>
+                          <p className="text-gray-600 text-xs">{new Date(w.session_date).toLocaleDateString()}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this workout?')) {
+                              supabase.from('training_sessions').delete().eq('id', w.id).then(() => {
+                                setWorkoutHistory(workoutHistory.filter(x => x.id !== w.id));
+                              });
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 text-xs font-semibold"
+                          title="Delete workout"
+                        >
+                          🗑️
+                        </button>
                       </div>
-                      <div className="text-right">
-                        {w.duration_minutes && <p className="text-gray-700">{w.duration_minutes} min</p>}
-                        {w.next_action && <p className="text-xs text-blue-600 mt-1">{w.next_action}</p>}
+                      <div className="text-xs text-gray-600 space-y-1">
+                        {w.duration_minutes && <p>⏱️ {w.duration_minutes} min</p>}
+                        {structured?.jog_interval && <p>🏃 Jog: {structured.jog_interval}</p>}
+                        {structured?.walk_interval && <p>🚶 Walk: {structured.walk_interval}</p>}
+                        {structured?.avg_heart_rate && <p>❤️ Avg HR: {structured.avg_heart_rate} bpm</p>}
+                        {w.next_action && <p className="text-blue-600 font-semibold">→ {w.next_action}</p>}
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="text-gray-500 text-sm">No workouts logged yet</p>
               )}
