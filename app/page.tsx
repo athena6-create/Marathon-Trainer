@@ -27,6 +27,8 @@ export default function Dashboard() {
   const [trainingLoading, setTrainingLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
   const recognitionRef = useRef<any>(null);
 
   const syncOuraData = async (userId: string) => {
@@ -159,6 +161,20 @@ export default function Dashboard() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('training_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false })
+        .limit(10);
+      setWorkoutHistory(data || []);
+    };
+    if (user) loadHistory();
+  }, [user]);
 
   const getRunLevelString = () => {
     if (!profile) return 'N/A';
@@ -418,56 +434,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex gap-6" style={{ minHeight: '100vh' }}>
-      {/* Left Sidebar */}
-      <div className="w-64 bg-gray-50 border-r border-gray-200 p-6 flex flex-col sticky top-0 h-screen">
-        {/* Profile Section */}
-        <div className="mb-6 pb-6 border-b border-gray-200">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-              {(profile?.first_name || user?.name || user?.email || 'R')[0].toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{profile?.first_name || user?.name || 'Runner'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Actions */}
-        <div className="space-y-2 mb-6 flex-1">
-          <Link
-            href="/history"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white hover:text-blue-600 transition-colors font-medium text-sm"
-          >
-            <span>📊</span>
-            Workout History
-          </Link>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-200 mb-6"></div>
-
-        {/* Secondary Actions */}
-        <div className="space-y-2 mb-6">
-          <Link
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white hover:text-blue-600 transition-colors font-medium text-sm"
-          >
-            <span>⚙️</span>
-            Settings
-          </Link>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors font-medium text-sm text-left"
-          >
-            <span>👋</span>
-            Sign Out
-          </button>
-        </div>
-      </div>
-
+    <div className="flex" style={{ minHeight: '100vh' }}>
       {/* Main Content */}
-      <div className="flex-1 p-6 max-w-4xl">
+      <div className="flex-1 p-6 flex flex-col">
         {/* Oura Ring Metrics */}
         {ouraStatus ? (
           <div className="card mb-6">
@@ -697,6 +666,65 @@ export default function Dashboard() {
             <p className="text-gray-700">No recommendation yet. Log your first workout to get started.</p>
           </div>
         )}
+
+        {/* Collapsible Workout History */}
+        <div className="card mb-6">
+          <button
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className="w-full flex items-center justify-between text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+          >
+            <span>📋 Recent Workouts</span>
+            <span className={`text-lg transition-transform ${historyOpen ? 'rotate-90' : ''}`}>→</span>
+          </button>
+          {historyOpen && (
+            <div className="mt-4 space-y-3 max-h-64 overflow-y-auto">
+              {workoutHistory.length > 0 ? (
+                workoutHistory.map((w) => (
+                  <div key={w.id} className="border-t border-gray-200 pt-3 text-sm">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-900 capitalize">{w.workout_type}</p>
+                        <p className="text-gray-600 text-xs">{new Date(w.session_date).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        {w.duration_minutes && <p className="text-gray-700">{w.duration_minutes} min</p>}
+                        {w.next_action && <p className="text-xs text-blue-600 mt-1">{w.next_action}</p>}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No workouts logged yet</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer - Profile, Settings, Sign Out */}
+        <div className="mt-auto pt-6 border-t border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              {(profile?.first_name || user?.name || user?.email || 'R')[0].toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{profile?.first_name || user?.name || 'Runner'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/profile"
+              className="px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium"
+            >
+              ⚙️
+            </Link>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="px-3 py-2 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors text-sm font-medium"
+            >
+              👋
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Right Panel - Log Workout */}
