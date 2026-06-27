@@ -140,7 +140,13 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
       response.content[0].type === 'text' ? response.content[0].text : '';
     console.log('Claude response received, parsing...');
 
-    const recommendation = JSON.parse(responseText);
+    // Strip markdown code fences if present
+    let cleanedText = responseText.trim();
+    if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
+    const recommendation = JSON.parse(cleanedText);
     console.log('✅ Generated recommendation:', recommendation);
 
     // Save the session
