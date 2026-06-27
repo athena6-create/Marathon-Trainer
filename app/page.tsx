@@ -648,22 +648,29 @@ export default function Dashboard() {
                   ℹ️
                 </button>
               </div>
-              {(recommendation as any).rest_status && !(recommendation as any).rest_status.ready && (
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                  Ready in {(recommendation as any).rest_status.hours_until_ready}h
-                </span>
-              )}
-              {(recommendation as any).rest_status && (recommendation as any).rest_status.ready && (
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                  Ready Now ✓
-                </span>
-              )}
+              {(() => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Tomorrow, {tomorrowStr}
+                  </span>
+                );
+              })()}
             </div>
-            <div className="mb-4">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
-                {recommendation.workout_type.toUpperCase()}
-              </span>
-            </div>
+            {recommendation.next_action && recommendation.next_action.toLowerCase().includes('rest') ? (
+              <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded">
+                <p className="text-lg font-semibold text-purple-900">Rest tomorrow</p>
+                <p className="text-sm text-purple-700 mt-2">Recovery day - allow your body to adapt and prepare for the next workout</p>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
+                  {recommendation.workout_type.toUpperCase()}
+                </span>
+              </div>
+            )}
 
             {recommendation.run_prescription && recommendation.run_prescription.jog_minutes && (
               <div className="bg-gray-50 p-4 rounded mb-4">
