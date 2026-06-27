@@ -122,6 +122,7 @@ Decision rules - COMBINE workout performance WITH Oura data:
 
 Use Oura as ground truth for recovery state. Be conservative. When in doubt, repeat the level or suggest recovery.`;
 
+    console.log('Calling Claude API for recommendation...');
     const response = await client.messages.create({
       model: 'claude-opus-4-1',
       max_tokens: 2048,
@@ -135,10 +136,10 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
 
     const responseText =
       response.content[0].type === 'text' ? response.content[0].text : '';
+    console.log('Claude response received, parsing...');
 
     const recommendation = JSON.parse(responseText);
-
-    console.log('Generated recommendation:', recommendation);
+    console.log('✅ Generated recommendation:', recommendation);
 
     // Save the session
     const { data: session, error: insertError } = await supabaseAdmin
@@ -209,8 +210,10 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
     });
   } catch (error) {
     console.error('Submit session error:', error);
+    const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error('Error details:', errorMsg);
     return NextResponse.json(
-      { error: 'Failed to generate recommendation', details: String(error) },
+      { error: 'Failed to generate recommendation', details: errorMsg },
       { status: 500 }
     );
   }
