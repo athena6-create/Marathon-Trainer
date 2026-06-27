@@ -19,7 +19,8 @@ export default function Dashboard() {
   // Training assistant state
   const [trainingState, setTrainingState] = useState<any>(null);
   const [workoutNote, setWorkoutNote] = useState('');
-  const [trainingStep, setTrainingStep] = useState<'input' | 'questionnaire' | 'recommendation'>('input');
+  const [trainingStep, setTrainingStep] = useState<'input' | 'questionnaire' | 'analysis' | 'recommendation'>('input');
+  const [analysisText, setAnalysisText] = useState('');
   const [currentSession, setCurrentSession] = useState<any>(null);
   const [questionnaire, setQuestionnaire] = useState<any[]>([]);
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string>>({});
@@ -361,7 +362,20 @@ export default function Dashboard() {
 
       const result = await response.json();
       setTrainingRecommendation(result);
-      setTrainingStep('recommendation');
+
+      // Show analysis first, with summary + readiness assessment
+      const analysis = `${result.summary}\n\n${result.readiness}\n\n${result.reasoning}`;
+      setAnalysisText(analysis);
+      setTrainingStep('analysis');
+
+      // Refresh workout history and recommendation in background
+      const { data: sessions } = await supabase
+        .from('training_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false })
+        .limit(10);
+      if (sessions) setWorkoutHistory(sessions);
 
       const { data: updated } = await supabase
         .from('training_state')
@@ -369,6 +383,34 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .single();
       if (updated) setTrainingState(updated);
+
+      // Regenerate recommendation with updated data
+      const recResponse = await fetch('/api/recommendation/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const recData = await recResponse.json();
+      if (recData.run_prescription) {
+        setRecommendation({
+          id: 'generated',
+          user_id: user.id,
+          triggered_by_workout_id: null,
+          recommended_date: new Date().toISOString().split('T')[0],
+          workout_type: 'run',
+          run_prescription: recData.run_prescription,
+          rationale: recData.rationale,
+          readiness_score: recData.oura_readiness,
+          risk_level: recData.oura_readiness >= 80 ? 'green' : recData.oura_readiness >= 60 ? 'yellow' : 'red',
+          user_acknowledged: false,
+          user_overridden: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          next_workout: recData.next_workout,
+          rest_status: recData.rest_status,
+        } as any);
+        setReadinessScore(recData.oura_readiness);
+      }
     } catch (error) {
       console.error('Error submitting session:', error);
       alert('Error generating recommendation');
@@ -384,6 +426,7 @@ export default function Dashboard() {
     setQuestionnaire([]);
     setQuestionnaireAnswers({});
     setTrainingRecommendation(null);
+    setAnalysisText('');
   };
 
   const toggleVoiceInput = () => {
@@ -840,6 +883,38 @@ export default function Dashboard() {
                 </button>
                 <button onClick={() => setTrainingStep('input')} className="button-secondary flex-1">
                   Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {trainingStep === 'analysis' && analysisText && (
+            <div>
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-400 p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Workout Analysis</h3>
+                <div className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed mb-6">
+                  {analysisText}
+                </div>
+                <div className="bg-white p-4 rounded border border-purple-200 mb-6">
+                  <p className="text-xs text-gray-600 mb-2">🔍 Claude is analyzing your patterns across all workouts...</p>
+                  <p className="text-xs text-gray-600">This helps future recommendations adapt to YOUR personal thresholds.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTrainingStep('questionnaire')}
+                  className="button-secondary flex-1"
+                  title="Go back to ask more questions"
+                >
+                  ❓ More Questions?
+                </button>
+                <button
+                  onClick={() => setTrainingStep('recommendation')}
+                  className="button-primary flex-1"
+                  title="See your personalized recommendation"
+                >
+                  → Ready for Recommendation
                 </button>
               </div>
             </div>
