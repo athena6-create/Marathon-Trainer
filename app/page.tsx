@@ -1031,21 +1031,50 @@ export default function Dashboard() {
                     <p className="text-xl font-bold text-green-600 mt-2">{trainingRecommendation.next_action}</p>
                   </div>
 
-                  {trainingRecommendation.workout && (
+                  {trainingRecommendation.next_action?.toLowerCase().includes('progress') || trainingRecommendation.next_action?.toLowerCase().includes('repeat') ? (
                     <div className="p-3 bg-white rounded border border-green-200">
-                      <p className="text-sm font-semibold text-gray-600 mb-2">Workout Details</p>
-                      <p className="text-sm font-medium text-gray-900 mb-2">{trainingRecommendation.workout.name}</p>
-                      {trainingRecommendation.workout.exercises && (
-                        <ul className="text-sm text-gray-700 space-y-1">
-                          {trainingRecommendation.workout.exercises.map((ex: any, i: number) => (
-                            <li key={i}>
-                              • {ex.name}: {ex.sets} × {ex.reps}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      <p className="text-sm font-semibold text-gray-600 mb-2">Run Prescription</p>
+                      <div className="grid grid-cols-4 gap-2 text-sm">
+                        {trainingRecommendation.workout?.jog_interval && (
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold">Jog</p>
+                            <p className="font-medium text-gray-900">{trainingRecommendation.workout.jog_interval}</p>
+                          </div>
+                        )}
+                        {trainingRecommendation.workout?.walk_interval && (
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold">Walk</p>
+                            <p className="font-medium text-gray-900">{trainingRecommendation.workout.walk_interval}</p>
+                          </div>
+                        )}
+                        {trainingRecommendation.workout?.repetitions && (
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold">Reps</p>
+                            <p className="font-medium text-gray-900">{trainingRecommendation.workout.repetitions}x</p>
+                          </div>
+                        )}
+                        {trainingRecommendation.workout?.speed_mph && (
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold">Speed</p>
+                            <p className="font-medium text-gray-900">{trainingRecommendation.workout.speed_mph} mph</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  ) : trainingRecommendation.workout?.exercises ? (
+                    <div className="p-3 bg-white rounded border border-green-200">
+                      <p className="text-sm font-semibold text-gray-600 mb-2">Strength Workout</p>
+                      <p className="text-sm font-medium text-gray-900 mb-2">{trainingRecommendation.workout.name}</p>
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        {trainingRecommendation.workout.exercises.map((ex: any, i: number) => (
+                          <li key={i}>
+                            {ex.name}: {ex.sets} × {ex.reps}
+                            {ex.weight && ` @ ${ex.weight}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
 
                   <div className="p-3 bg-white rounded border border-blue-200">
                     <p className="text-sm font-semibold text-gray-600">Reasoning</p>
