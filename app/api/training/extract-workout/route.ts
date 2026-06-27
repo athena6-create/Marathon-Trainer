@@ -21,14 +21,13 @@ Workout note:
 Extract and return ONLY valid JSON (no markdown, no code fence) with these fields. Use null for missing values:
 
 {
-  "workout_type": "run|walk|strength|mobility|rest|cross-training",
+  "workout_type": "run|run/walk|walk|strength|mobility|rest|cross-training",
   "completed": true|false,
   "duration_minutes": number|null,
-  "distance_miles": number|null,
+  "distance_description": "text description (e.g., '3 miles', '5K', 'about 2 miles')|null",
   "avg_heart_rate": number|null,
   "max_heart_rate": number|null,
-  "perceived_effort": 1-10 number|null,
-  "knee_pain": 0-10 number|null,
+  "aerobic_difficulty": 1-10 number|null,
   "general_soreness": 0-10 number|null,
   "fatigue": 0-10 number|null,
   "breathing_difficulty": 0-10 number|null,
@@ -37,7 +36,14 @@ Extract and return ONLY valid JSON (no markdown, no code fence) with these field
   "warning_signs": ["list of any sharp pain, worsening pain, limping, swelling, dizziness, chest pain, unusual HR"]
 }
 
-Be conservative. If unsure about a value, use null. For pain/effort scales, infer from language like "sore", "tired", "great", etc.`;
+Special instructions:
+- workout_type: Set to "run/walk" if they mention both running AND walking. Set to "run" if only running. Set to "walk" if only walking.
+- distance_description: Keep as text (e.g., "5 miles", "3K", "didn't track distance")
+- aerobic_difficulty: How hard was it to breathe? Rate based on language like "huffing", "breathless", "easy breathing", "out of breath"
+- general_soreness: How does the body feel overall (muscle soreness, fatigue in legs, etc)?
+- breathing_difficulty: Alias for how much cardio/aerobic challenge it was
+
+Be conservative. If unsure, use null.`;
 
     const response = await client.messages.create({
       model: 'claude-opus-4-1',

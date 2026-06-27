@@ -650,32 +650,34 @@ export default function Dashboard() {
 
           {trainingStep === 'input' && (
             <div>
-              <div className="relative mb-4">
-                <textarea
-                  value={workoutNote}
-                  onChange={(e) => setWorkoutNote(e.target.value)}
-                  placeholder="E.g., 'I did 5-minute jog, 2-minute walk intervals for 35 minutes. Completed all 5 rounds. Knees felt fine. Average heart rate was 150. Felt a bit tired but good.'"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base h-24"
-                />
+              <label className="block text-sm font-medium text-gray-900 mb-2">Describe Your Workout</label>
+              <textarea
+                value={workoutNote}
+                onChange={(e) => setWorkoutNote(e.target.value)}
+                placeholder="E.g., 'I did 5-minute jog, 2-minute walk intervals for 35 minutes. Completed all 5 rounds. Felt good.'"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base h-20 mb-3"
+              />
+
+              <div className="flex gap-2 mb-4">
                 <button
                   onClick={toggleVoiceInput}
-                  className={`absolute bottom-3 right-3 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isListening
                       ? 'bg-red-500 text-white animate-pulse'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-300'
                   }`}
                   title="Click to record voice note"
                 >
-                  {isListening ? '🎤 Listening...' : '🎤'}
+                  {isListening ? '🎤 Listening...' : '🎤 Voice Type It'}
+                </button>
+                <button
+                  onClick={handleExtractWorkout}
+                  disabled={!workoutNote.trim() || trainingLoading}
+                  className="flex-1 button-primary disabled:opacity-50"
+                >
+                  {trainingLoading ? 'Analyzing...' : 'Analyze'}
                 </button>
               </div>
-              <button
-                onClick={handleExtractWorkout}
-                disabled={!workoutNote.trim() || trainingLoading}
-                className="button-primary disabled:opacity-50"
-              >
-                {trainingLoading ? 'Analyzing...' : 'Analyze Workout'}
-              </button>
             </div>
           )}
 
