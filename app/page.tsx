@@ -32,6 +32,8 @@ export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<any>(null);
   const recognitionRef = useRef<any>(null);
 
   const syncOuraData = async (userId: string) => {
@@ -116,6 +118,17 @@ export default function Dashboard() {
           body: JSON.stringify({ userId: authUser.id }),
         });
         const recData = await recResponse.json();
+
+        // Load latest recommendation from database
+        const { data: latestRec } = await supabase
+          .from('recommendations')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (latestRec && latestRec.length > 0) {
+          console.log('Latest recommendation loaded:', latestRec[0]);
+        }
 
         if (recData.run_prescription) {
           setRecommendation({
@@ -388,6 +401,28 @@ export default function Dashboard() {
     }
   };
 
+  const saveRecommendationToDb = async (rec: any, feedback?: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('recommendations')
+        .upsert({
+          user_id: user.id,
+          workout_date: new Date().toISOString().split('T')[0],
+          next_action: rec.next_action,
+          workout_name: rec.workout?.name,
+          exercises: rec.workout?.exercises,
+          reasoning: rec.reasoning,
+          watch_outs: rec.watch_outs,
+          user_feedback: feedback || null,
+          is_accepted: true,
+        });
+      if (error) console.error('Save recommendation error:', error);
+    } catch (err) {
+      console.error('Error saving recommendation:', err);
+    }
+  };
+
   const resetTrainingForm = () => {
     setWorkoutNote('');
     setTrainingStep('input');
@@ -581,7 +616,28 @@ export default function Dashboard() {
         {recommendation ? (
           <div className="card mb-6">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Next Recommended Workout</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900">Next Recommended Workout</h2>
+                <button
+                  onClick={async () => {
+                    // Fetch the latest recommendation from database
+                    const { data } = await supabase
+                      .from('recommendations')
+                      .select('*')
+                      .eq('user_id', user?.id)
+                      .order('created_at', { ascending: false })
+                      .limit(1);
+                    if (data && data.length > 0) {
+                      setSelectedRecommendation(data[0]);
+                      setShowRecommendationModal(true);
+                    }
+                  }}
+                  className="text-gray-400 hover:text-blue-600 transition-colors text-lg font-semibold"
+                  title="View full recommendation details"
+                >
+                  ℹ️
+                </button>
+              </div>
               {(recommendation as any).rest_status && !(recommendation as any).rest_status.ready && (
                 <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
                   Ready in {(recommendation as any).rest_status.hours_until_ready}h
@@ -927,6 +983,8 @@ export default function Dashboard() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      // Save to database
+                      saveRecommendationToDb(trainingRecommendation);
                       // Save recommendation as next workout
                       setRecommendation({
                         id: 'accepted',
@@ -981,7 +1039,9 @@ export default function Dashboard() {
                   <button
                     onClick={() => {
                       if (tweakingNote.trim()) {
-                        // For now, just accept with the note
+                        // Save to database with user feedback
+                        saveRecommendationToDb(trainingRecommendation, tweakingNote);
+                        // Accept with the note
                         setRecommendation({
                           id: 'tweaked',
                           user_id: user?.id || '',
@@ -1072,6 +1132,74 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Recommendation Details Modal */}
+      {showRecommendationModal && selectedRecommendation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Recommendation Details</h2>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <p className="text-sm font-semibold text-gray-600">Next Action</p>
+                <p className="text-xl font-bold text-blue-600 mt-1">{selectedRecommendation.next_action}</p>
+              </div>
+
+              {selectedRecommendation.workout_name && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-600">Workout Name</p>
+                  <p className="text-gray-900 mt-1">{selectedRecommendation.workout_name}</p>
+                </div>
+              )}
+
+              {selectedRecommendation.exercises && selectedRecommendation.exercises.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-2">Exercises</p>
+                  <ul className="space-y-2">
+                    {selectedRecommendation.exercises.map((ex: any, i: number) => (
+                      <li key={i} className="text-sm text-gray-700">
+                        • <span className="font-medium">{ex.name}</span>: {ex.sets} × {ex.reps}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {selectedRecommendation.reasoning && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-600">Reasoning</p>
+                  <p className="text-gray-700 mt-1 text-sm">{selectedRecommendation.reasoning}</p>
+                </div>
+              )}
+
+              {selectedRecommendation.watch_outs && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm font-semibold text-gray-600">Watch-outs</p>
+                  <p className="text-sm text-gray-700 mt-1">{selectedRecommendation.watch_outs}</p>
+                </div>
+              )}
+
+              {selectedRecommendation.user_feedback && (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded">
+                  <p className="text-sm font-semibold text-gray-600">Your Refinement</p>
+                  <p className="text-sm text-gray-700 mt-1">{selectedRecommendation.user_feedback}</p>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 mt-4">
+                Created: {new Date(selectedRecommendation.created_at).toLocaleDateString()}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowRecommendationModal(false)}
+              className="button-primary w-full"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Repeat Previous Modal */}
         {showRepeatModal && (
