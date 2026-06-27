@@ -8,6 +8,8 @@ export default function WorkoutHistory() {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -37,6 +39,27 @@ export default function WorkoutHistory() {
 
     loadHistory();
   }, []);
+
+  const handleDelete = async (workoutId: string) => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('training_sessions')
+        .delete()
+        .eq('id', workoutId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setWorkouts(workouts.filter((w) => w.id !== workoutId));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      alert('Failed to delete workout');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const getWorkoutIcon = (type: string) => {
     const icons: Record<string, string> = {
@@ -82,7 +105,7 @@ export default function WorkoutHistory() {
                 className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-2xl">{getWorkoutIcon(workout.workout_type)}</span>
                       <div>
@@ -119,6 +142,12 @@ export default function WorkoutHistory() {
                         {workout.next_action}
                       </div>
                     )}
+                    <button
+                      onClick={() => setDeleteConfirm(workout.id)}
+                      className="mt-3 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                    >
+                      🗑️ Delete
+                    </button>
                   </div>
                 </div>
 
@@ -153,6 +182,34 @@ export default function WorkoutHistory() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Delete Workout?</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this workout? This action cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50"
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
