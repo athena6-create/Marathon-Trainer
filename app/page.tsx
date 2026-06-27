@@ -830,12 +830,24 @@ export default function Dashboard() {
                           Delete
                         </button>
                       </div>
-                      <div className="text-xs text-gray-700 bg-gray-50 p-2 rounded flex gap-4">
-                        {structured?.jog_interval && <div><span className="text-gray-500">Jog:</span> {structured.jog_interval}</div>}
-                        {structured?.walk_interval && <div><span className="text-gray-500">Walk:</span> {structured.walk_interval}</div>}
-                        {w.duration_minutes && <div><span className="text-gray-500">Duration:</span> {w.duration_minutes} min</div>}
-                        {structured?.avg_heart_rate && <div><span className="text-gray-500">Avg HR:</span> {structured.avg_heart_rate} bpm</div>}
-                      </div>
+                      {w.workout_type === 'run' || w.workout_type === 'run/walk' ? (
+                        <div className="text-xs text-gray-700 bg-gray-50 p-2 rounded">
+                          <div className="flex flex-wrap gap-3">
+                            {w.duration_minutes && <div><span className="text-gray-500 font-semibold">Duration:</span> {w.duration_minutes} min</div>}
+                            {structured?.jog_interval && <div><span className="text-gray-500 font-semibold">Jog:</span> {structured.jog_interval}</div>}
+                            {structured?.walk_interval && <div><span className="text-gray-500 font-semibold">Walk:</span> {structured.walk_interval}</div>}
+                            {structured?.repetitions && <div><span className="text-gray-500 font-semibold">Reps:</span> {structured.repetitions}x</div>}
+                            {structured?.speed_mph && <div><span className="text-gray-500 font-semibold">Speed:</span> {structured.speed_mph} mph</div>}
+                            {structured?.avg_heart_rate && <div><span className="text-gray-500 font-semibold">Avg HR:</span> {structured.avg_heart_rate} bpm</div>}
+                            {structured?.max_heart_rate && <div><span className="text-gray-500 font-semibold">Max HR:</span> {structured.max_heart_rate} bpm</div>}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-700 bg-gray-50 p-2 rounded flex gap-4">
+                          {w.duration_minutes && <div><span className="text-gray-500 font-semibold">Duration:</span> {w.duration_minutes} min</div>}
+                          {structured?.avg_heart_rate && <div><span className="text-gray-500 font-semibold">Avg HR:</span> {structured.avg_heart_rate} bpm</div>}
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -1044,6 +1056,8 @@ export default function Dashboard() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      console.log('✅ ACCEPTING - trainingRecommendation:', trainingRecommendation);
+                      console.log('✅ next_action value:', trainingRecommendation.next_action);
                       // Save to database
                       saveRecommendationToDb(trainingRecommendation);
                       // Save recommendation as next workout (flexible for all types)

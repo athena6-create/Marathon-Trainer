@@ -25,23 +25,33 @@ Extract and return ONLY valid JSON (no markdown, no code fence) with these field
   "completed": true|false,
   "duration_minutes": number|null,
   "distance_description": "text description (e.g., '3 miles', '5K', 'about 2 miles')|null",
+  "jog_interval": "text (e.g., '5 min', '5:30')|null",
+  "walk_interval": "text (e.g., '2 min', '2:00')|null",
+  "repetitions": "number (e.g., 5) or null",
+  "speed_mph": "number or null",
   "avg_heart_rate": number|null,
   "max_heart_rate": number|null,
   "aerobic_difficulty": 1-10 number|null,
   "general_soreness": 0-10 number|null,
   "fatigue": 0-10 number|null,
   "breathing_difficulty": 0-10 number|null,
-  "intervals": "description of intervals (e.g., '5 min jog / 2 min walk x 5')|null",
   "mood": "string|null",
   "warning_signs": ["list of any sharp pain, worsening pain, limping, swelling, dizziness, chest pain, unusual HR"]
 }
 
+CRITICAL FOR RUNS: These 6 metrics are essential. Extract ALL of them or use null:
+1. jog_interval (e.g., "5:00", "5 min")
+2. walk_interval (e.g., "2:00", "2 min")
+3. repetitions (number of jog/walk rounds)
+4. speed_mph (pace, e.g., 5.5, 6.0)
+5. avg_heart_rate (number)
+6. max_heart_rate (number)
+
 Special instructions:
-- workout_type: Set to "run/walk" if they mention both running AND walking. Set to "run" if only running. Set to "walk" if only walking.
-- distance_description: Keep as text (e.g., "5 miles", "3K", "didn't track distance")
-- aerobic_difficulty: How hard was it to breathe? Rate based on language like "huffing", "breathless", "easy breathing", "out of breath"
-- general_soreness: How does the body feel overall (muscle soreness, fatigue in legs, etc)?
-- breathing_difficulty: Alias for how much cardio/aerobic challenge it was
+- For runs: Extract all 6 metrics above. If user mentions intervals, parse exact times.
+- distance_description: Keep as text (e.g., "5 miles", "3K")
+- aerobic_difficulty: How hard was it to breathe? 1-10 scale
+- If any of the 6 metrics is missing, set to null (questionnaire will ask follow-up)
 
 Be conservative. If unsure, use null.`;
 

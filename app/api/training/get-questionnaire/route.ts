@@ -15,11 +15,21 @@ ${JSON.stringify(structured_data, null, 2)}
 Available Oura data (from user's ring):
 ${JSON.stringify(oura_data, null, 2)}
 
-Generate follow-up questions ONLY for:
-1. Missing key fields (distance_description, aerobic_difficulty, general_soreness)
+FOR RUNS: ALWAYS ask for missing metrics from this critical set:
+- jog_interval (e.g., "How long was your jog interval?" - e.g., 5 minutes)
+- walk_interval (e.g., "How long was your walk interval?" - e.g., 2 minutes)
+- repetitions (e.g., "How many jog/walk rounds did you complete?")
+- speed_mph (e.g., "At what pace did you run?" - e.g., 5.5 mph)
+- avg_heart_rate (e.g., "What was your average heart rate?")
+- max_heart_rate (e.g., "What was your maximum heart rate?")
+- aerobic_difficulty (e.g., "On a scale of 1-10, how hard was it to breathe?")
+- distance_description (e.g., "How far did you run?")
+
+Generate follow-up questions for:
+1. ANY missing run metrics (from the 8 above for run/run-walk workouts)
 2. Concerning signals (high fatigue, warning signs)
-3. Readiness to progress (completed workout, effort level)
-4. Recovery assessment (only if NOT already covered by Oura data)
+3. Recovery assessment (only if NOT covered by Oura data)
+4. Readiness to progress (completed workout, effort level)
 
 DO NOT ask about:
 - Sleep/hours slept (we have Oura sleep_score and sleep_duration)
