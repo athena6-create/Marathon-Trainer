@@ -752,29 +752,6 @@ export default function Dashboard() {
                   Repeat Previous
                 </button>
               </div>
-
-              {/* Next Workout Preview */}
-              {recommendation && (recommendation as any).next_workout && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">What's Next</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600">Tomorrow's Workout</p>
-                        <p className="text-lg font-semibold text-gray-900 capitalize mt-1">
-                          💪 {(recommendation as any).next_workout.type}
-                        </p>
-                      </div>
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                        {(recommendation as any).next_workout.rest_days} day rest
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mt-2">
-                      {(recommendation as any).next_workout.description}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         ) : (
