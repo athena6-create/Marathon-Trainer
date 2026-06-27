@@ -149,10 +149,10 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
     const recommendation = JSON.parse(cleanedText);
     console.log('✅ Generated recommendation:', recommendation);
 
-    // Save the session
+    // Save the session (upsert - update if exists for today, insert if new)
     const { data: session, error: insertError } = await supabaseAdmin
       .from('training_sessions')
-      .insert({
+      .upsert({
         user_id: userId,
         session_date: new Date().toISOString().split('T')[0],
         workout_type: structured_data.workout_type || 'run',
@@ -173,6 +173,8 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
         oura_snapshot: oura_snapshot,
         recommendation: recommendation.recommendation,
         next_action: recommendation.next_action,
+      }, {
+        onConflict: 'user_id,session_date'
       })
       .select()
       .single();
