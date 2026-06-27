@@ -24,7 +24,7 @@ Generate follow-up questions ONLY for:
 DO NOT ask about:
 - Sleep/hours slept (we have Oura sleep_score and sleep_duration)
 - Knee pain, specific body areas, or anything already captured
-- Any metric that Oura already has`
+- Any metric that Oura already has
 
 Return ONLY valid JSON array (no markdown, no code fence) with questions:
 
