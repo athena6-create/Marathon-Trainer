@@ -604,21 +604,32 @@ export default function Dashboard() {
 
         {/* Current Run Level */}
         <div className="card mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Run Level</h2>
-          {recommendation && (
-            <div className="mb-4">
-              {recommendation.next_action?.toLowerCase().includes('progress to next') && (
-                <div className="bg-green-50 border border-green-200 px-3 py-2 rounded text-sm text-green-900 font-semibold">
-                  Ready to Progress
-                </div>
-              )}
-              {recommendation.next_action?.toLowerCase().includes('repeat same level') && (
-                <div className="bg-yellow-50 border border-yellow-200 px-3 py-2 rounded text-sm text-yellow-900 font-semibold">
-                  Repeating This Level
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Current Run Level</h2>
+            {recommendation && (
+              <>
+                {(() => {
+                  const action = recommendation.next_action?.toLowerCase() || '';
+                  console.log('🔍 Debug badge - next_action:', recommendation.next_action, 'lowercased:', action);
+
+                  if (action.includes('progress')) {
+                    return (
+                      <div className="bg-green-50 border border-green-200 px-3 py-2 rounded text-sm text-green-900 font-semibold">
+                        Ready to Progress
+                      </div>
+                    );
+                  } else if (action.includes('repeat')) {
+                    return (
+                      <div className="bg-yellow-50 border border-yellow-200 px-3 py-2 rounded text-sm text-yellow-900 font-semibold">
+                        Repeating This Level
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </>
+            )}
+          </div>
 
           <div className="grid grid-cols-4 gap-4">
             <div>
