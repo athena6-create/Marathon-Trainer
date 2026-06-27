@@ -874,7 +874,7 @@ export default function Dashboard() {
                   disabled={trainingLoading}
                   className="button-primary flex-1 disabled:opacity-50"
                 >
-                  {trainingLoading ? 'Generating...' : 'Get Recommendation'}
+                  {trainingLoading ? 'Analyzing...' : '📊 Analyze'}
                 </button>
                 <button onClick={() => setTrainingStep('input')} className="button-secondary flex-1">
                   Back
