@@ -386,13 +386,23 @@ export default function Dashboard() {
       setTrainingStep('analysis');
 
       // Refresh workout history in background
-      const { data: sessions } = await supabase
-        .from('training_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('session_date', { ascending: false })
-        .limit(10);
-      if (sessions) setWorkoutHistory(sessions);
+      console.log('🔄 Refreshing workout history...');
+      try {
+        const { data: sessions, error: histError } = await supabase
+          .from('training_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('session_date', { ascending: false })
+          .limit(10);
+        if (histError) {
+          console.error('❌ History fetch error:', histError);
+        } else {
+          console.log('✅ Loaded', sessions?.length || 0, 'recent workouts');
+          if (sessions) setWorkoutHistory(sessions);
+        }
+      } catch (err) {
+        console.error('Error refreshing history:', err);
+      }
     } catch (error) {
       console.error('Error submitting session:', error);
       alert('Error generating recommendation');
