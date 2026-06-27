@@ -932,48 +932,20 @@ export default function Dashboard() {
                     <label className="block text-sm font-medium text-gray-900 mb-2">
                       {q.question}
                     </label>
-                    {q.type === 'text' ? (
-                      <input
-                        type="text"
-                        value={questionnaireAnswers[q.id] || ''}
-                        onChange={(e) =>
-                          setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder={q.placeholder}
-                      />
-                    ) : q.type === 'number' ? (
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="0"
-                          max={q.max || 10}
-                          value={questionnaireAnswers[q.id] || q.default || 0}
-                          onChange={(e) =>
-                            setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
-                          }
-                          className="flex-1"
-                        />
-                        <span className="text-sm font-semibold text-gray-900 w-12">
-                          {questionnaireAnswers[q.id] || q.default || 0}
-                        </span>
-                      </div>
-                    ) : q.type === 'select' ? (
-                      <select
-                        value={questionnaireAnswers[q.id] || ''}
-                        onChange={(e) =>
-                          setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      >
-                        <option value="">Choose...</option>
-                        {q.options?.map((opt: string) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    ) : null}
+                    <input
+                      type="text"
+                      value={questionnaireAnswers[q.id] || ''}
+                      onChange={(e) =>
+                        setQuestionnaireAnswers({ ...questionnaireAnswers, [q.id]: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder={q.placeholder}
+                    />
+                    {q.guardrail && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {q.guardrail}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

@@ -36,28 +36,41 @@ DO NOT ask about:
 - Knee pain, specific body areas, or anything already captured
 - Any metric that Oura already has
 
-Return ONLY valid JSON array (no markdown, no code fence) with questions:
+Return ONLY valid JSON array (no markdown, no code fence). ALL questions are free text with guardrails:
 
 [
   {
     "id": "unique_id",
     "question": "Your question here?",
-    "type": "text|number|select",
-    "placeholder": "optional placeholder",
-    "default": 5,
-    "max": 10,
-    "options": ["option1", "option2"]
+    "type": "text",
+    "placeholder": "e.g., '145 bpm' or 'around 150, felt elevated'",
+    "guardrail": "Heart rate should be 60-180 bpm"
   }
 ]
 
-Examples:
-- If distance_description is missing: Ask "How far did you run/walk (in miles or kilometers)?" (type: text)
-- If aerobic_difficulty is missing: Ask "How hard was it to breathe? (1=easy, 10=couldn't catch breath)" (type: number, max: 10)
-- If general_soreness is missing: Ask "How sore does your body feel overall? (1=fresh, 10=very sore)" (type: number, max: 10)
-- If completed == false: Ask "What caused you to stop or cut it short?" (type: text)
-- If fatigue is high: Ask "How recovered do you feel today? (1=exhausted, 10=fresh)" (type: number, max: 10)
+CRITICAL: ALL questions must be FREE TEXT (type: "text") with guardrails.
 
-Keep questions brief, practical, and focused on overall experience. Max 4 questions.`;
+Examples:
+- If jog_interval missing: "What was your jog interval?" (type: text, placeholder: "e.g., 5 min, 5:30, 5 minutes")
+- If walk_interval missing: "What was your walk interval?" (type: text, placeholder: "e.g., 2 min, 1:30")
+- If repetitions missing: "How many jog/walk rounds?" (type: text, placeholder: "e.g., 5, 5 rounds, 5x")
+- If speed_mph missing: "What pace did you run?" (type: text, placeholder: "e.g., 5.5 mph, 6 mph", guardrail: "Speed should be 2-15 mph")
+- If avg_heart_rate missing: "Average heart rate?" (type: text, placeholder: "e.g., 145 bpm, around 150", guardrail: "Heart rate should be 60-180 bpm")
+- If max_heart_rate missing: "Maximum heart rate?" (type: text, placeholder: "e.g., 165 bpm, peaked at 170", guardrail: "Heart rate should be 60-180 bpm")
+- If distance_description missing: "How far did you run?" (type: text, placeholder: "e.g., 3 miles, 5K, about 2 miles")
+- If aerobic_difficulty missing: "How hard was it to breathe?" (type: text, placeholder: "e.g., 6/10, moderate, could hold conversation", guardrail: "Use 1-10 scale or describe effort")
+- If completed == false: "What caused you to stop early?" (type: text, placeholder: "e.g., cramping, felt sick, time ran out")
+- If fatigue is high: "How do you feel recovery-wise?" (type: text, placeholder: "e.g., very tired, exhausted, need sleep", guardrail: "Describe your fatigue level")
+
+Guardrails:
+- Heart rate: 60-180 bpm
+- Speed: 2-15 mph
+- Distance: any text (miles, km, laps, etc.)
+- Time: any text (minutes, seconds, rounds)
+- Effort/difficulty: 1-10 scale or text description
+- Fatigue/soreness: 0-10 scale or text description
+
+Keep questions brief, practical. Max 4 questions. NO sliders, NO multiple choice - ALL free text.`;
 
     const response = await client.messages.create({
       model: 'claude-opus-4-1',
