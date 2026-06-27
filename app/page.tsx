@@ -604,7 +604,23 @@ export default function Dashboard() {
 
         {/* Current Run Level */}
         <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Current Run Level</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Current Run Level</h2>
+            {recommendation && (
+              <>
+                {recommendation.next_action?.toLowerCase().includes('progress') && (
+                  <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">
+                    ✓ Ready to Progress
+                  </span>
+                )}
+                {recommendation.next_action?.toLowerCase().includes('repeat same level') && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-semibold">
+                    ↻ Repeating This Level
+                  </span>
+                )}
+              </>
+            )}
+          </div>
           <div className="grid grid-cols-4 gap-4">
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-2">Jog Interval</p>
