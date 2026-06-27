@@ -604,23 +604,22 @@ export default function Dashboard() {
 
         {/* Current Run Level */}
         <div className="card mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Current Run Level</h2>
-            {recommendation && (
-              <>
-                {recommendation.next_action?.toLowerCase().includes('progress to next') && (
-                  <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">
-                    ✓ Ready to Progress
-                  </span>
-                )}
-                {recommendation.next_action?.toLowerCase().includes('repeat same level') && (
-                  <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-semibold">
-                    ↻ Repeating This Level
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Run Level</h2>
+          {recommendation && (
+            <div className="mb-4">
+              {recommendation.next_action?.toLowerCase().includes('progress to next') && (
+                <div className="bg-green-50 border border-green-200 px-3 py-2 rounded text-sm text-green-900 font-semibold">
+                  Ready to Progress
+                </div>
+              )}
+              {recommendation.next_action?.toLowerCase().includes('repeat same level') && (
+                <div className="bg-yellow-50 border border-yellow-200 px-3 py-2 rounded text-sm text-yellow-900 font-semibold">
+                  Repeating This Level
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-4 gap-4">
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-2">Jog Interval</p>
@@ -801,10 +800,10 @@ export default function Dashboard() {
                 workoutHistory.map((w) => {
                   const structured = typeof w.structured_data === 'string' ? JSON.parse(w.structured_data) : w.structured_data;
                   return (
-                    <div key={w.id} className="border-t border-gray-200 pt-3 text-sm">
-                      <div className="flex justify-between items-start mb-2">
+                    <div key={w.id} className="border-t border-gray-200 pt-3">
+                      <div className="flex justify-between items-center mb-2">
                         <div>
-                          <p className="font-medium text-gray-900 capitalize">{w.workout_type}</p>
+                          <p className="font-medium text-gray-900 capitalize text-sm">{w.workout_type}</p>
                           <p className="text-gray-600 text-xs">{new Date(w.session_date).toLocaleDateString()}</p>
                         </div>
                         <button
@@ -815,18 +814,16 @@ export default function Dashboard() {
                               });
                             }
                           }}
-                          className="text-red-500 hover:text-red-700 text-xs font-semibold"
-                          title="Delete workout"
+                          className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded font-semibold transition-colors"
                         >
-                          🗑️
+                          Delete
                         </button>
                       </div>
-                      <div className="text-xs text-gray-600 space-y-1">
-                        {w.duration_minutes && <p>⏱️ {w.duration_minutes} min</p>}
-                        {structured?.jog_interval && <p>🏃 Jog: {structured.jog_interval}</p>}
-                        {structured?.walk_interval && <p>🚶 Walk: {structured.walk_interval}</p>}
-                        {structured?.avg_heart_rate && <p>❤️ Avg HR: {structured.avg_heart_rate} bpm</p>}
-                        {w.next_action && <p className="text-blue-600 font-semibold">→ {w.next_action}</p>}
+                      <div className="text-xs text-gray-700 bg-gray-50 p-2 rounded flex gap-4">
+                        {structured?.jog_interval && <div><span className="text-gray-500">Jog:</span> {structured.jog_interval}</div>}
+                        {structured?.walk_interval && <div><span className="text-gray-500">Walk:</span> {structured.walk_interval}</div>}
+                        {w.duration_minutes && <div><span className="text-gray-500">Duration:</span> {w.duration_minutes} min</div>}
+                        {structured?.avg_heart_rate && <div><span className="text-gray-500">Avg HR:</span> {structured.avg_heart_rate} bpm</div>}
                       </div>
                     </div>
                   );
