@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User, AthleteProfile, Recommendation } from '@/lib/types';
 
@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string>>({});
   const [trainingRecommendation, setTrainingRecommendation] = useState<any>(null);
   const [trainingLoading, setTrainingLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -321,6 +323,53 @@ export default function Dashboard() {
     setTrainingRecommendation(null);
   };
 
+  const toggleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice input not supported in your browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!recognitionRef.current) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+
+      recognitionRef.current.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            setWorkoutNote((prev) => prev + (prev ? ' ' : '') + transcript);
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        alert(`Error: ${event.error}`);
+      };
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+    }
+  };
+
 
   if (loading) {
     return (
@@ -601,12 +650,25 @@ export default function Dashboard() {
 
           {trainingStep === 'input' && (
             <div>
-              <textarea
-                value={workoutNote}
-                onChange={(e) => setWorkoutNote(e.target.value)}
-                placeholder="E.g., 'I did 5-minute jog, 2-minute walk intervals for 35 minutes. Completed all 5 rounds. Knees felt fine. Average heart rate was 150. Felt a bit tired but good.'"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 text-base h-24"
-              />
+              <div className="relative mb-4">
+                <textarea
+                  value={workoutNote}
+                  onChange={(e) => setWorkoutNote(e.target.value)}
+                  placeholder="E.g., 'I did 5-minute jog, 2-minute walk intervals for 35 minutes. Completed all 5 rounds. Knees felt fine. Average heart rate was 150. Felt a bit tired but good.'"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base h-24"
+                />
+                <button
+                  onClick={toggleVoiceInput}
+                  className={`absolute bottom-3 right-3 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title="Click to record voice note"
+                >
+                  {isListening ? '🎤 Listening...' : '🎤'}
+                </button>
+              </div>
               <button
                 onClick={handleExtractWorkout}
                 disabled={!workoutNote.trim() || trainingLoading}
