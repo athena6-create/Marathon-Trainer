@@ -432,10 +432,21 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="flex-1 p-6 max-w-4xl">
-        {/* Oura Recovery Metrics */}
+        {/* Oura Ring Metrics */}
         {ouraStatus ? (
           <div className="card mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recovery Metrics</h2>
+            <div className="flex items-baseline gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Oura Ring Metrics</h2>
+              {ouraStatus.todaySnapshot?.snapshot_date && (
+                <p className="text-sm text-gray-400">
+                  {new Date(ouraStatus.todaySnapshot.snapshot_date + 'T00:00:00').toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Resilience */}
               <div
@@ -497,7 +508,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="card mb-6 bg-blue-50 border-l-4 border-blue-400">
-            <p className="text-gray-700 mb-2">Connect your Oura Ring to see Recovery Metrics.</p>
+            <p className="text-gray-700 mb-2">Connect your Oura Ring to see Oura Ring Metrics.</p>
             <Link href="/profile" className="text-blue-600 font-semibold text-sm hover:underline">
               Go to Settings →
             </Link>
