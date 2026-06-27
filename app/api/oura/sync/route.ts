@@ -174,7 +174,9 @@ export async function POST(request: NextRequest) {
     console.log("Attempting to upsert snapshots:", snapshots.length);
     const { error: upsertError } = await supabaseAdmin
       .from("oura_daily_snapshot")
-      .upsert(snapshots);
+      .upsert(snapshots, {
+        onConflict: "user_id,snapshot_date"
+      });
 
     if (upsertError) {
       // Ignore duplicate key errors (data already synced)
