@@ -19,12 +19,14 @@ export default function Dashboard() {
   // Training assistant state
   const [trainingState, setTrainingState] = useState<any>(null);
   const [workoutNote, setWorkoutNote] = useState('');
-  const [trainingStep, setTrainingStep] = useState<'input' | 'questionnaire' | 'analysis' | 'recommendation'>('input');
+  const [trainingStep, setTrainingStep] = useState<'input' | 'questionnaire' | 'analysis' | 'recommendation' | 'accept-tweak'>('input');
   const [analysisText, setAnalysisText] = useState('');
   const [currentSession, setCurrentSession] = useState<any>(null);
   const [questionnaire, setQuestionnaire] = useState<any[]>([]);
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string>>({});
   const [trainingRecommendation, setTrainingRecommendation] = useState<any>(null);
+  const [tweakingNote, setTweakingNote] = useState('');
+  const [isTweaking, setIsTweaking] = useState(false);
   const [trainingLoading, setTrainingLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -369,6 +371,15 @@ export default function Dashboard() {
       console.log('📋 Analysis text:', analysis);
       setAnalysisText(analysis);
       setTrainingStep('analysis');
+
+      // Refresh workout history in background
+      const { data: sessions } = await supabase
+        .from('training_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false })
+        .limit(10);
+      if (sessions) setWorkoutHistory(sessions);
     } catch (error) {
       console.error('Error submitting session:', error);
       alert('Error generating recommendation');
@@ -385,6 +396,8 @@ export default function Dashboard() {
     setQuestionnaireAnswers({});
     setTrainingRecommendation(null);
     setAnalysisText('');
+    setTweakingNote('');
+    setIsTweaking(false);
   };
 
   const toggleVoiceInput = () => {
@@ -868,12 +881,139 @@ export default function Dashboard() {
                   ❓ More Questions?
                 </button>
                 <button
-                  onClick={() => setTrainingStep('recommendation')}
+                  onClick={() => setTrainingStep('accept-tweak')}
                   className="button-primary flex-1"
                   title="See your personalized recommendation"
                 >
                   → Ready for Recommendation
                 </button>
+              </div>
+            </div>
+          )}
+
+          {trainingStep === 'accept-tweak' && trainingRecommendation && !isTweaking && (
+            <div>
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-400 p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">✨ Recommended Workout</h3>
+
+                <div className="space-y-4 mb-6">
+                  <div className="p-3 bg-white rounded border border-green-200">
+                    <p className="text-sm font-semibold text-gray-600">Next Action</p>
+                    <p className="text-xl font-bold text-green-600 mt-2">{trainingRecommendation.next_action}</p>
+                  </div>
+
+                  {trainingRecommendation.workout && (
+                    <div className="p-3 bg-white rounded border border-green-200">
+                      <p className="text-sm font-semibold text-gray-600 mb-2">Workout Details</p>
+                      <p className="text-sm font-medium text-gray-900 mb-2">{trainingRecommendation.workout.name}</p>
+                      {trainingRecommendation.workout.exercises && (
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          {trainingRecommendation.workout.exercises.map((ex: any, i: number) => (
+                            <li key={i}>
+                              • {ex.name}: {ex.sets} × {ex.reps}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="p-3 bg-white rounded border border-blue-200">
+                    <p className="text-sm font-semibold text-gray-600">Reasoning</p>
+                    <p className="text-sm text-gray-700 mt-2">{trainingRecommendation.reasoning}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // Save recommendation as next workout
+                      setRecommendation({
+                        id: 'accepted',
+                        user_id: user?.id || '',
+                        triggered_by_workout_id: null,
+                        recommended_date: new Date().toISOString().split('T')[0],
+                        workout_type: trainingRecommendation.workout?.category || 'training',
+                        run_prescription: trainingRecommendation.workout || null,
+                        rationale: trainingRecommendation.reasoning,
+                        readiness_score: 0,
+                        risk_level: 'green',
+                        user_acknowledged: true,
+                        user_overridden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        next_workout: trainingRecommendation.next_action,
+                        rest_status: 'ready',
+                      } as any);
+                      resetTrainingForm();
+                    }}
+                    className="button-primary flex-1"
+                  >
+                    ✅ Accept
+                  </button>
+                  <button
+                    onClick={() => setIsTweaking(true)}
+                    className="button-secondary flex-1"
+                  >
+                    ✏️ Refine
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {trainingStep === 'accept-tweak' && isTweaking && (
+            <div>
+              <div className="bg-purple-50 border-l-4 border-purple-400 p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">💬 Refine Your Recommendation</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Tell me more about what you'd like to adjust. I'll refine the recommendation based on your feedback.
+                </p>
+
+                <textarea
+                  value={tweakingNote}
+                  onChange={(e) => setTweakingNote(e.target.value)}
+                  placeholder="E.g., 'I prefer running over strength work', or 'Can we make it easier?' or 'I want to progress harder'"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base h-24 mb-4"
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (tweakingNote.trim()) {
+                        // For now, just accept with the note
+                        setRecommendation({
+                          id: 'tweaked',
+                          user_id: user?.id || '',
+                          triggered_by_workout_id: null,
+                          recommended_date: new Date().toISOString().split('T')[0],
+                          workout_type: trainingRecommendation.workout?.category || 'training',
+                          run_prescription: trainingRecommendation.workout || null,
+                          rationale: `${trainingRecommendation.reasoning}\n\nUser refinement: ${tweakingNote}`,
+                          readiness_score: 0,
+                          risk_level: 'green',
+                          user_acknowledged: true,
+                          user_overridden: true,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                          next_workout: trainingRecommendation.next_action,
+                          rest_status: 'ready',
+                        } as any);
+                        resetTrainingForm();
+                      }
+                    }}
+                    className="button-primary flex-1"
+                    disabled={!tweakingNote.trim()}
+                  >
+                    ✅ Accept Refinement
+                  </button>
+                  <button
+                    onClick={() => setIsTweaking(false)}
+                    className="button-secondary flex-1"
+                  >
+                    ← Back
+                  </button>
+                </div>
               </div>
             </div>
           )}
