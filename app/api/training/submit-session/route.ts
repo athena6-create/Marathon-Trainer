@@ -47,6 +47,22 @@ export async function POST(request: NextRequest) {
       researchedWorkout = await performLiveResearch(allData, run_level, needsResearch);
     }
 
+    // Fetch existing pattern analysis for this user
+    const { data: trainingState } = await supabaseAdmin
+      .from('training_state')
+      .select('pattern_analysis')
+      .eq('user_id', userId)
+      .single();
+
+    const patterns = trainingState?.pattern_analysis;
+    const patternContext = patterns
+      ? `
+PERSONALIZED PATTERNS (from ${patterns.data_points || 'recent'} workouts):
+${JSON.stringify(patterns, null, 2)}
+
+Use these personal thresholds to inform your recommendation.`
+      : 'Pattern analysis will be available after 3+ workouts.';
+
     // Generate recommendation
     const recommendationPrompt = `You are a conservative, beginner-safe half-marathon training assistant.
 
@@ -64,6 +80,8 @@ Oura Ring recovery data (IMPORTANT - use this to inform recommendations):
 - Activity level: ${oura_snapshot?.activity_score} (0-100)
 - HRV: ${oura_snapshot?.hrv} (higher is better for recovery)
 - Resting heart rate: ${oura_snapshot?.resting_heart_rate} bpm (lower is better)
+
+${patternContext}
 
 ${researchedWorkout ? `Researched workout option:\n${JSON.stringify(researchedWorkout, null, 2)}` : ''}
 
@@ -176,6 +194,14 @@ Use Oura as ground truth for recovery state. Be conservative. When in doubt, rep
       .eq('user_id', userId);
 
     if (progressError) console.error('Progress update error:', progressError);
+
+    // Analyze patterns asynchronously (don't block response)
+    console.log('📊 Queuing pattern analysis...');
+    fetch('http://localhost:3000/api/training/analyze-patterns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    }).catch(err => console.error('Pattern analysis queue failed:', err));
 
     console.log(`=== TRAINING SESSION END ===\n`);
 
