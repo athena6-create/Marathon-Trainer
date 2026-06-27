@@ -1062,6 +1062,7 @@ export default function Dashboard() {
                         user_overridden: false,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
+                        next_action: trainingRecommendation.next_action,
                         next_workout: trainingRecommendation.next_action,
                         rest_status: 'ready',
                       } as any);
@@ -1119,6 +1120,7 @@ export default function Dashboard() {
                           user_overridden: true,
                           created_at: new Date().toISOString(),
                           updated_at: new Date().toISOString(),
+                          next_action: trainingRecommendation.next_action,
                           next_workout: trainingRecommendation.next_action,
                           rest_status: 'ready',
                         } as any);
