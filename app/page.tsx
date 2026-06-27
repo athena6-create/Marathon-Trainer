@@ -683,36 +683,49 @@ export default function Dashboard() {
               </div>
             )}
 
-            {(recommendation.workout_type === 'run' || recommendation.workout_type === 'run/walk') && (recommendation as any).workout && (
-              <div className="bg-gray-50 p-4 rounded mb-4">
-                <div className="grid grid-cols-4 gap-4">
-                  {(recommendation as any).workout.jog_interval && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-1">Jog</p>
-                      <p className="font-medium text-gray-700">{(recommendation as any).workout.jog_interval}</p>
+            {(() => {
+              const rec = recommendation as any;
+              const isRun = rec.workout_type === 'run' || rec.workout_type === 'run/walk' || String(rec.next_action).toLowerCase().includes('run') || String(rec.next_action).toLowerCase().includes('progress') || String(rec.next_action).toLowerCase().includes('repeat');
+              const workout = rec.workout || rec.run_prescription || {};
+              const jog = workout.jog_interval || workout.jog_minutes || null;
+              const walk = workout.walk_interval || workout.walk_minutes || null;
+              const reps = workout.repetitions || workout.reps_min || null;
+              const speed = workout.speed_mph || null;
+
+              if (isRun && (jog || walk || reps || speed)) {
+                return (
+                  <div className="bg-gray-50 p-4 rounded mb-4">
+                    <div className="grid grid-cols-4 gap-4">
+                      {jog && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Jog</p>
+                          <p className="font-medium text-gray-700">{jog}</p>
+                        </div>
+                      )}
+                      {walk && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Walk</p>
+                          <p className="font-medium text-gray-700">{walk}</p>
+                        </div>
+                      )}
+                      {reps && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Reps</p>
+                          <p className="font-medium text-gray-700">{String(reps).includes('x') ? reps : reps + 'x'}</p>
+                        </div>
+                      )}
+                      {speed && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Speed</p>
+                          <p className="font-medium text-gray-700">{speed}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {(recommendation as any).workout.walk_interval && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-1">Walk</p>
-                      <p className="font-medium text-gray-700">{(recommendation as any).workout.walk_interval}</p>
-                    </div>
-                  )}
-                  {(recommendation as any).workout.repetitions && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-1">Reps</p>
-                      <p className="font-medium text-gray-700">{(recommendation as any).workout.repetitions}x</p>
-                    </div>
-                  )}
-                  {(recommendation as any).workout.speed_mph && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-1">Speed</p>
-                      <p className="font-medium text-gray-700">{(recommendation as any).workout.speed_mph}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {(recommendation as any).workout_details && (recommendation as any).workout_details.exercises && (
               <div className="bg-gray-50 p-4 rounded mb-4">
