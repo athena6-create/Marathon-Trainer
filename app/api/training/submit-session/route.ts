@@ -6,7 +6,9 @@ import { WebSearch } from '@anthropic-ai/sdk/resources';
 const client = new Anthropic();
 
 export async function POST(request: NextRequest) {
+  console.log('📝 [submit-session] Received request');
   try {
+    console.log('📝 [submit-session] Parsing JSON...');
     const {
       userId,
       structured_data,
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    console.log(`\n=== TRAINING SESSION START (User: ${userId}) ===`);
+    console.log(`\n✅ [submit-session] TRAINING SESSION START (User: ${userId})`);
 
     // Get recent training history for context
     const { data: recentSessions } = await supabaseAdmin

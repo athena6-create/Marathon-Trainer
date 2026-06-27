@@ -159,12 +159,7 @@ export async function POST(request: NextRequest) {
       };
 
       if (activity) {
-        console.log(`\n=== Activity for ${sleep.day} ===`);
-        console.log(`Raw activity object:`, JSON.stringify(activity, null, 2));
-        console.log(`Extracted activity_score: ${snapshot.activity_score}`);
-        console.log(`Activity keys: ${Object.keys(activity).join(', ')}`);
-      } else {
-        console.log(`No activity data for ${sleep.day}`);
+        console.log(`✅ Activity ${sleep.day}: score=${snapshot.activity_score}, steps=${snapshot.steps}`);
       }
 
       return snapshot;
