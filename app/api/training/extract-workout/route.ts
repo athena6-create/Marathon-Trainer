@@ -18,42 +18,42 @@ User's current run level: ${runLevel}
 Workout note:
 "${workoutNote}"
 
-Extract and return ONLY valid JSON (no markdown, no code fence) with these fields. Use null for missing values:
+Extract and return ONLY valid JSON (no markdown, no code fence). ALL fields are FREE TEXT to capture nuance and context:
 
 {
   "workout_type": "run|run/walk|walk|strength|mobility|rest|cross-training",
   "completed": true|false,
-  "duration_minutes": number|null,
-  "distance_description": "text description (e.g., '3 miles', '5K', 'about 2 miles')|null",
-  "jog_interval": "text (e.g., '5 min', '5:30')|null",
-  "walk_interval": "text (e.g., '2 min', '2:00')|null",
-  "repetitions": "number (e.g., 5) or null",
-  "speed_mph": "number or null",
-  "avg_heart_rate": number|null,
-  "max_heart_rate": number|null,
-  "aerobic_difficulty": 1-10 number|null,
-  "general_soreness": 0-10 number|null,
-  "fatigue": 0-10 number|null,
-  "breathing_difficulty": 0-10 number|null,
-  "mood": "string|null",
-  "warning_signs": ["list of any sharp pain, worsening pain, limping, swelling, dizziness, chest pain, unusual HR"]
+  "duration_minutes": "free text (e.g., '40 min', '35-40 minutes')|null",
+  "distance_description": "free text (e.g., '3 miles', '5K', 'about 2 miles, didn't track exactly')|null",
+  "jog_interval": "free text (e.g., '5 min, felt easy', '5:30, quicker than usual')|null",
+  "walk_interval": "free text (e.g., '2 min, good recovery', '1:30 short breaks')|null",
+  "repetitions": "free text (e.g., '5 rounds', '6x', 'lost count after 4')|null",
+  "speed_mph": "free text (e.g., '5.5 mph', '6 mph, faster today', 'around 5 mph')|null",
+  "avg_heart_rate": "free text (e.g., '145 bpm', '140-150, elevated due to heat', 'around 150')|null",
+  "max_heart_rate": "free text (e.g., '165 bpm', '160, spiked at the end', '155-160 range')|null",
+  "aerobic_difficulty": "free text (e.g., '6/10, could hold conversation', '7/10, breathing hard', 'moderate effort')|null",
+  "general_soreness": "free text (e.g., '3/10, legs slightly tight', '2/10, quads a bit sore', 'no soreness')|null",
+  "fatigue": "free text (e.g., '4/10, still energized', '7/10, tired at the end', 'moderate')|null",
+  "mood": "free text (e.g., 'excellent, felt strong', 'frustrated with pace', 'good overall')|null",
+  "warning_signs": ["list of any pain, discomfort, or concerns"]
 }
 
-CRITICAL FOR RUNS: These 6 metrics are essential. Extract ALL of them or use null:
-1. jog_interval (e.g., "5:00", "5 min")
-2. walk_interval (e.g., "2:00", "2 min")
-3. repetitions (number of jog/walk rounds)
-4. speed_mph (pace, e.g., 5.5, 6.0)
-5. avg_heart_rate (number)
-6. max_heart_rate (number)
+CRITICAL FOR RUNS: Extract these 6 fields as FREE TEXT with context:
+1. jog_interval (include pace/effort notes if mentioned)
+2. walk_interval (include how it felt)
+3. repetitions (number of rounds + notes)
+4. speed_mph (include pace variation or how it compared to usual)
+5. avg_heart_rate (include context: elevated from heat, lower than usual, etc.)
+6. max_heart_rate (include when it spiked or why)
 
 Special instructions:
-- For runs: Extract all 6 metrics above. If user mentions intervals, parse exact times.
-- distance_description: Keep as text (e.g., "5 miles", "3K")
-- aerobic_difficulty: How hard was it to breathe? 1-10 scale
-- If any of the 6 metrics is missing, set to null (questionnaire will ask follow-up)
+- Capture EVERYTHING as text - user's exact words, context, comparisons
+- Example: "5:30 jog, felt faster than yesterday" vs just "5:30"
+- Example: "145 bpm average, probably high because of humidity" vs just "145"
+- Include notes about changes: "pace was faster", "HR lower despite harder effort", etc.
+- This allows Claude to capture personal patterns and context in analysis
 
-Be conservative. If unsure, use null.`;
+If a metric is completely missing, use null (questionnaire will ask follow-up).`;
 
     const response = await client.messages.create({
       model: 'claude-opus-4-1',
