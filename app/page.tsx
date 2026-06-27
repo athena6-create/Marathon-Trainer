@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [trainingRecommendation, setTrainingRecommendation] = useState<any>(null);
   const [tweakingNote, setTweakingNote] = useState('');
   const [isTweaking, setIsTweaking] = useState(false);
+  const [tweakReason, setTweakReason] = useState('');
+  const [showTweakModal, setShowTweakModal] = useState(false);
+  const [isTweakListening, setIsTweakListening] = useState(false);
   const [trainingLoading, setTrainingLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -655,28 +658,7 @@ export default function Dashboard() {
         {recommendation ? (
           <div className="card mb-6">
             <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-gray-900">Next Recommended Workout</h2>
-                <button
-                  onClick={async () => {
-                    // Fetch the latest recommendation from database
-                    const { data } = await supabase
-                      .from('recommendations')
-                      .select('*')
-                      .eq('user_id', user?.id)
-                      .order('created_at', { ascending: false })
-                      .limit(1);
-                    if (data && data.length > 0) {
-                      setSelectedRecommendation(data[0]);
-                      setShowRecommendationModal(true);
-                    }
-                  }}
-                  className="text-gray-400 hover:text-blue-600 transition-colors text-lg font-semibold"
-                  title="View full recommendation details"
-                >
-                  ℹ️
-                </button>
-              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Next Recommended Workout</h2>
               {(() => {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -701,26 +683,33 @@ export default function Dashboard() {
               </div>
             )}
 
-            {recommendation.run_prescription && recommendation.run_prescription.jog_minutes && (
+            {(recommendation.workout_type === 'run' || recommendation.workout_type === 'run/walk') && (recommendation as any).workout && (
               <div className="bg-gray-50 p-4 rounded mb-4">
-                <p className="font-semibold text-gray-900 mb-3">Run Prescription:</p>
                 <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 mb-1">Jog Interval</p>
-                    <p className="font-medium text-gray-700">{recommendation.run_prescription.jog_minutes}:{String(recommendation.run_prescription.jog_seconds).padStart(2, '0')} min</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 mb-1">Walk Interval</p>
-                    <p className="font-medium text-gray-700">{recommendation.run_prescription.walk_minutes}:{String(recommendation.run_prescription.walk_seconds).padStart(2, '0')} min</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 mb-1">Repetitions</p>
-                    <p className="font-medium text-gray-700">{recommendation.run_prescription.reps_min}-{recommendation.run_prescription.reps_max}x</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 mb-1">Speed</p>
-                    <p className="font-medium text-gray-700">{recommendation.run_prescription.speed_mph} mph</p>
-                  </div>
+                  {(recommendation as any).workout.jog_interval && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-1">Jog</p>
+                      <p className="font-medium text-gray-700">{(recommendation as any).workout.jog_interval}</p>
+                    </div>
+                  )}
+                  {(recommendation as any).workout.walk_interval && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-1">Walk</p>
+                      <p className="font-medium text-gray-700">{(recommendation as any).workout.walk_interval}</p>
+                    </div>
+                  )}
+                  {(recommendation as any).workout.repetitions && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-1">Reps</p>
+                      <p className="font-medium text-gray-700">{(recommendation as any).workout.repetitions}x</p>
+                    </div>
+                  )}
+                  {(recommendation as any).workout.speed_mph && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-1">Speed</p>
+                      <p className="font-medium text-gray-700">{(recommendation as any).workout.speed_mph}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -750,44 +739,42 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="mb-4">
-              <p className="text-sm font-semibold text-gray-900 mb-2">Rationale:</p>
-              <p className="text-gray-700 text-sm">{recommendation.rationale}</p>
+            <div className="mb-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Summary:</p>
+                <p className="text-gray-700 text-sm">{(recommendation as any).summary || recommendation.rationale}</p>
+              </div>
+              {(recommendation as any).readiness && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Readiness:</p>
+                  <p className="text-gray-700 text-sm">{(recommendation as any).readiness}</p>
+                </div>
+              )}
+              {(recommendation as any).risk && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Risk Assessment:</p>
+                  <p className="text-gray-700 text-sm">{(recommendation as any).risk}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Reasoning:</p>
+                <p className="text-gray-700 text-sm">{recommendation.rationale}</p>
+              </div>
+              {(recommendation as any).watch_outs && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Watch Outs:</p>
+                  <p className="text-gray-700 text-sm">{(recommendation as any).watch_outs}</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs text-gray-600 bg-blue-50 p-3 rounded">
-                💡 You can modify any part of this prescription before logging your workout. The app learns from your notes and adjusts future recommendations.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    await supabase
-                      .from('recommendations')
-                      .update({ user_acknowledged: true })
-                      .eq('id', recommendation.id);
-                    alert('Acknowledged!');
-                    window.location.reload();
-                  }}
-                  className="button-primary flex-1"
-                >
-                  Acknowledge
-                </button>
-                <button
-                  onClick={() => {
-                    alert('Tweak feature coming soon! You can modify: interval duration, reps, speed.');
-                  }}
-                  className="button-secondary flex-1"
-                >
-                  Tweak
-                </button>
-                <button
-                  onClick={() => setShowRepeatModal(true)}
-                  className="button-secondary flex-1"
-                >
-                  Repeat Previous
-                </button>
-              </div>
+              <button
+                onClick={() => setShowTweakModal(true)}
+                className="button-secondary w-full"
+              >
+                Tweak
+              </button>
             </div>
           </div>
         ) : (
@@ -1324,6 +1311,111 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+      {/* Tweak Recommendation Modal */}
+      {showTweakModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Adjust Your Recommendation</h2>
+            <p className="text-sm text-gray-700 mb-4">Do you want to change your next recommended workout? Why?</p>
+
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Your thoughts (voice or text)</label>
+                <textarea
+                  value={tweakReason}
+                  onChange={(e) => setTweakReason(e.target.value)}
+                  placeholder="e.g., My legs are fresher than expected, I want to push harder..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm h-24"
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+                    const recognition = new SpeechRecognition();
+                    recognition.onstart = () => setIsTweakListening(true);
+                    recognition.onend = () => setIsTweakListening(false);
+                    recognition.onresult = (event: any) => {
+                      const transcript = Array.from(event.results)
+                        .map((result: any) => result[0])
+                        .map((result: any) => result.transcript)
+                        .join('');
+                      setTweakReason(transcript);
+                    };
+                    recognition.start();
+                  } else {
+                    alert('Voice input not supported in your browser');
+                  }
+                }}
+                className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isTweakListening
+                    ? 'bg-red-500 text-white'
+                    : 'bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100'
+                }`}
+              >
+                {isTweakListening ? '🎤 Listening...' : '🎤 Voice'}
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowTweakModal(false);
+                  setTweakReason('');
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!tweakReason.trim()) {
+                    alert('Please tell me why you want to change your recommendation');
+                    return;
+                  }
+
+                  setTrainingLoading(true);
+                  try {
+                    const response = await fetch('/api/training/tweak-recommendation', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user?.id,
+                        currentRecommendation: recommendation,
+                        tweakReason: tweakReason,
+                      }),
+                    });
+
+                    const data = await response.json();
+                    console.log('Tweaked recommendation:', data);
+
+                    if (data.questions && data.questions.length > 0) {
+                      setQuestionnaire(data.questions);
+                      setTrainingStep('questionnaire');
+                    } else if (data.updatedRecommendation) {
+                      setRecommendation(data.updatedRecommendation);
+                    }
+
+                    setShowTweakModal(false);
+                    setTweakReason('');
+                  } catch (error) {
+                    console.error('Tweak error:', error);
+                    alert('Error processing your tweak');
+                  } finally {
+                    setTrainingLoading(false);
+                  }
+                }}
+                disabled={trainingLoading}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50"
+              >
+                {trainingLoading ? 'Processing...' : 'Analyze'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
