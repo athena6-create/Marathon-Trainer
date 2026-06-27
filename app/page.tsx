@@ -655,9 +655,9 @@ export default function Dashboard() {
               </span>
             </div>
 
-            {recommendation.run_prescription && (
+            {recommendation.run_prescription && recommendation.run_prescription.jog_minutes && (
               <div className="bg-gray-50 p-4 rounded mb-4">
-                <p className="font-semibold text-gray-900 mb-3">Prescription:</p>
+                <p className="font-semibold text-gray-900 mb-3">Run Prescription:</p>
                 <div className="grid grid-cols-4 gap-4">
                   <div>
                     <p className="text-xs font-semibold text-gray-600 mb-1">Jog Interval</p>
@@ -675,6 +675,24 @@ export default function Dashboard() {
                     <p className="text-xs font-semibold text-gray-600 mb-1">Speed</p>
                     <p className="font-medium text-gray-700">{recommendation.run_prescription.speed_mph} mph</p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {(recommendation as any).workout_details && (recommendation as any).workout_details.exercises && (
+              <div className="bg-gray-50 p-4 rounded mb-4">
+                <p className="font-semibold text-gray-900 mb-3">{(recommendation as any).workout_details.name}</p>
+                <div className="space-y-2">
+                  {(recommendation as any).workout_details.exercises.map((ex: any, i: number) => (
+                    <div key={i} className="border-l-4 border-blue-300 pl-3 py-1">
+                      <p className="font-medium text-gray-900">{ex.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {ex.sets} sets × {ex.reps}
+                        {ex.weight && ` @ ${ex.weight}`}
+                        {ex.duration && ` - ${ex.duration}`}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -985,14 +1003,15 @@ export default function Dashboard() {
                     onClick={() => {
                       // Save to database
                       saveRecommendationToDb(trainingRecommendation);
-                      // Save recommendation as next workout
+                      // Save recommendation as next workout (flexible for all types)
                       setRecommendation({
                         id: 'accepted',
                         user_id: user?.id || '',
                         triggered_by_workout_id: null,
                         recommended_date: new Date().toISOString().split('T')[0],
-                        workout_type: trainingRecommendation.workout?.category || 'training',
-                        run_prescription: trainingRecommendation.workout || null,
+                        workout_type: trainingRecommendation.next_action,
+                        workout_details: trainingRecommendation.workout || null,
+                        run_prescription: trainingRecommendation.workout?.jog_minutes ? trainingRecommendation.workout : null,
                         rationale: trainingRecommendation.reasoning,
                         readiness_score: 0,
                         risk_level: 'green',
@@ -1041,14 +1060,15 @@ export default function Dashboard() {
                       if (tweakingNote.trim()) {
                         // Save to database with user feedback
                         saveRecommendationToDb(trainingRecommendation, tweakingNote);
-                        // Accept with the note
+                        // Accept with the note (flexible for all workout types)
                         setRecommendation({
                           id: 'tweaked',
                           user_id: user?.id || '',
                           triggered_by_workout_id: null,
                           recommended_date: new Date().toISOString().split('T')[0],
-                          workout_type: trainingRecommendation.workout?.category || 'training',
-                          run_prescription: trainingRecommendation.workout || null,
+                          workout_type: trainingRecommendation.next_action,
+                          workout_details: trainingRecommendation.workout || null,
+                          run_prescription: trainingRecommendation.workout?.jog_minutes ? trainingRecommendation.workout : null,
                           rationale: `${trainingRecommendation.reasoning}\n\nUser refinement: ${tweakingNote}`,
                           readiness_score: 0,
                           risk_level: 'green',
