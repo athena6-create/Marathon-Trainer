@@ -26,7 +26,36 @@ export default function Dashboard() {
   const [trainingRecommendation, setTrainingRecommendation] = useState<any>(null);
   const [trainingLoading, setTrainingLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  const syncOuraData = async (userId: string) => {
+    try {
+      console.log('Syncing Oura data...');
+      setSyncing(true);
+      const syncResponse = await fetch('/api/oura/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const syncData = await syncResponse.json();
+      console.log('Sync result:', syncData);
+
+      // Fetch updated status
+      const ouraResponse = await fetch('/api/oura/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const ouraData = await ouraResponse.json();
+      console.log('Updated Oura data:', ouraData);
+      setOuraStatus(ouraData);
+    } catch (error) {
+      console.error('Error syncing Oura data:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -57,6 +86,9 @@ export default function Dashboard() {
           setProfile(profileData);
         }
 
+        console.log('Syncing Oura data...');
+        await syncOuraData(authUser.id);
+
         console.log('Generating recommendation...');
         const recResponse = await fetch('/api/recommendation/generate', {
           method: 'POST',
@@ -85,17 +117,6 @@ export default function Dashboard() {
           } as any);
           setReadinessScore(recData.oura_readiness);
         }
-
-        console.log('Fetching Oura status...');
-        const ouraResponse = await fetch('/api/oura/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: authUser.id }),
-        });
-        console.log('Oura status response:', ouraResponse.status);
-        const ouraData = await ouraResponse.json();
-        console.log('Oura data:', ouraData);
-        setOuraStatus(ouraData);
 
         // Get training state
         const { data: state } = await supabase
@@ -435,17 +456,26 @@ export default function Dashboard() {
         {/* Oura Ring Metrics */}
         {ouraStatus ? (
           <div className="card mb-6">
-            <div className="flex items-baseline gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Oura Ring Metrics</h2>
-              {ouraStatus.todaySnapshot?.snapshot_date && (
-                <p className="text-sm text-gray-400">
-                  {new Date(ouraStatus.todaySnapshot.snapshot_date + 'T00:00:00').toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </p>
-              )}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-baseline gap-3">
+                <h2 className="text-lg font-semibold text-gray-900">Oura Ring Metrics</h2>
+                {ouraStatus.todaySnapshot?.snapshot_date && (
+                  <p className="text-sm text-gray-400">
+                    {new Date(ouraStatus.todaySnapshot.snapshot_date + 'T00:00:00').toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => user && syncOuraData(user.id)}
+                disabled={syncing}
+                className="text-xs px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50"
+              >
+                {syncing ? '⟳ Syncing...' : '⟳ Sync Now'}
+              </button>
             </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Resilience */}
