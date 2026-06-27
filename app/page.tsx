@@ -386,7 +386,7 @@ export default function Dashboard() {
       setTrainingStep('analysis');
 
       // Refresh workout history in background
-      console.log('🔄 Refreshing workout history...');
+      console.log('🔄 Refreshing workout history for user:', user.id);
       try {
         const { data: sessions, error: histError } = await supabase
           .from('training_sessions')
@@ -398,6 +398,7 @@ export default function Dashboard() {
           console.error('❌ History fetch error:', histError);
         } else {
           console.log('✅ Loaded', sessions?.length || 0, 'recent workouts');
+          console.log('📝 Sessions data:', sessions);
           if (sessions) setWorkoutHistory(sessions);
         }
       } catch (err) {
@@ -414,20 +415,22 @@ export default function Dashboard() {
   const saveRecommendationToDb = async (rec: any, feedback?: string) => {
     if (!user) return;
     try {
+      console.log('💾 Saving recommendation to DB...');
       const { error } = await supabase
         .from('recommendations')
         .upsert({
           user_id: user.id,
           workout_date: new Date().toISOString().split('T')[0],
           next_action: rec.next_action,
-          workout_name: rec.workout?.name,
-          exercises: rec.workout?.exercises,
           reasoning: rec.reasoning,
           watch_outs: rec.watch_outs,
           user_feedback: feedback || null,
-          is_accepted: true,
         });
-      if (error) console.error('Save recommendation error:', error);
+      if (error) {
+        console.error('❌ Save recommendation error:', error);
+      } else {
+        console.log('✅ Recommendation saved');
+      }
     } catch (err) {
       console.error('Error saving recommendation:', err);
     }
